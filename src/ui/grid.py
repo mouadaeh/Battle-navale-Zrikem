@@ -2,17 +2,8 @@ import pygame
 from src.utils.constants import RED, BLACK, WHITE, GREEN, SKY_BLUE, BLUE
 
 def draw_grid(screen, board, fonts, reveal=False, is_player_grid=True, position="center"):
-    """Draw a game board grid with ships and hits/misses
-    
-    Args:
-        screen: The pygame screen to draw on
-        board: The board object to draw
-        fonts: Dictionary of fonts
-        reveal: Whether to reveal ships
-        is_player_grid: Whether this is the player's grid
-        position: Where to position the grid ("left", "right", or "center")
-    """
-    # Setup
+    """Draw a game board grid with ships and hits/misses"""
+    # Setup - Move title higher up
     title = fonts["large"].render("Bataille Navale", True, BLUE)
     screen.blit(title, (screen.get_width() // 2 - title.get_width() // 2, 10))
     
@@ -30,7 +21,8 @@ def draw_grid(screen, board, fonts, reveal=False, is_player_grid=True, position=
     else:  # center
         start_x = (screen.get_width() - board.width) // 2
     
-    start_y = (screen.get_height() - board.height) // 2
+    # Move grids down by increasing the Y offset (was -20, now +20)
+    start_y = (screen.get_height() - board.height) // 2 
     
     # Calculate cell size
     cell_width = board.width / len(board.grid[0])
@@ -62,6 +54,6 @@ def draw_grid(screen, board, fonts, reveal=False, is_player_grid=True, position=
     
     # Draw subtitle BELOW the grid instead of above it
     screen.blit(subtitle, (start_x + board.width // 2 - subtitle.get_width() // 2, 
-                          start_y + board.height + 10))  # 10 pixels below the grid
+                          start_y + board.height + 15))  # Increased from 10 to 15 pixels below the grid
     
     return start_x, start_y

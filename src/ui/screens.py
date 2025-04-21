@@ -10,8 +10,14 @@ def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
     title_text = fonts["large"].render("Bataille Navale", True, WHITE)
     screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, 100))
     
+    # Supprimer ou commenter ces lignes pour enlever le message "Veuillez patienter"
+    # if button_cooldown > 0:
+    #     cooldown_text = fonts["small"].render("Veuillez patienter...", True, WHITE)
+    #     screen.blit(cooldown_text, (screen.get_width() // 2 - cooldown_text.get_width() // 2, 
+    #                               screen.get_height() // 2 - 140))
+    
     # Single player button
-    draw_button(
+    single_player_clicked = draw_button(
         screen,
         "Joueur vs IA",
         screen.get_width() // 2 - 150,
@@ -77,10 +83,11 @@ def draw_game_end(screen, winner, fonts, restart_action):
     """Draw the end game screen"""
     screen.fill(BLACK)
     
-    if winner == "player":
-        win_text = fonts["large"].render("Vous avez gagné !", True, WHITE)
+    # Fix the condition to match what game_state.py actually sets
+    if winner == "player":  # This should match what you set in game_state.py
+        win_text = fonts["large"].render("Vous avez gagné !", True, GREEN)  # Changed to GREEN
     else:
-        win_text = fonts["large"].render("L'ordinateur a gagné !", True, WHITE)
+        win_text = fonts["large"].render("L'ordinateur a gagné !", True, RED)  # Changed to RED
     
     screen.blit(win_text, (screen.get_width() // 2 - win_text.get_width() // 2, screen.get_height() // 2 - 50))
     

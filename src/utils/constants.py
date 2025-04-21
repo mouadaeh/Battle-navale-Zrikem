@@ -36,3 +36,12 @@ FPS = 60
 
 # Background path
 BACKGROUND_PATH = os.path.join("assets", "images", "background1.jpg")
+
+# Timing constants
+BUTTON_COOLDOWN = 60  # Standard cooldown for buttons
+MESSAGE_DURATION = 60  # Standard duration for messages
+ROTATION_COOLDOWN = 15  # Cooldown for ship rotation
+TRANSITION_DELAY = 90  # Delay for state transitions
+
+# AI constants
+AI_THINKING_DELAY = 90  # Delay to simulate AI thinking

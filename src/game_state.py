@@ -1,8 +1,9 @@
 import random
+import os
 from src.utils.constants import SHIPS, GRID_SIZE
 from src.board import Board
 from src.ship import Ship
-from src.ai import ComputerAI
+from src.ai import ReinforcementLearningAI
 
 class GameState:
     """Manages the state of the battleship game"""
@@ -40,8 +41,8 @@ class GameState:
         # Winner
         self.winner = None
         
-        # Computer AI
-        self.computer_ai = ComputerAI(self.player_board)
+        # Computer AI - Initialize it later when needed
+        self.computer_ai = None
     
     def start_single_player(self):
         """Start single player game"""
@@ -75,8 +76,9 @@ class GameState:
         # Reset winner
         self.winner = None
         
-        # Reset AI
-        self.computer_ai = ComputerAI(self.player_board)
+        # Reset AI only if in single player mode
+        if self.game_mode == self.SINGLE_PLAYER:
+            self.computer_ai = ReinforcementLearningAI(self.player_board)
     
     def generate_computer_ships(self):
         """Generate ships for the computer"""
@@ -112,13 +114,39 @@ class GameState:
     
     def computer_attack(self):
         """Computer attacks the player's grid"""
-        row, col = self.computer_ai.get_attack_coordinates()
+        # First, collect all available (not yet attacked) positions
+        available_positions = []
+        for row in range(len(self.player_board.grid)):
+            for col in range(len(self.player_board.grid[row])):
+                # Only consider positions that haven't been attacked yet
+                if self.player_board.view[row][col] == '.':
+                    available_positions.append((row, col))
         
-        if row is None or col is None:
+        # If no positions available, return None (game should be over already)
+        if not available_positions:
             return None, None, False
         
+        # If we have an AI, get its suggestion
+        if self.computer_ai:
+            row, col = self.computer_ai.get_attack_coordinates()
+            
+            # Check if the AI-suggested position has already been attacked
+            # If so, pick a random available position instead
+            if self.player_board.view[row][col] != '.':
+                import random
+                row, col = random.choice(available_positions)
+        else:
+            # No AI, just pick a random available position
+            import random
+            row, col = random.choice(available_positions)
+        
+        # Now we're guaranteed to have an unattacked position
+        # Make the attack
         hit = self.player_board.receive_attack(row, col)
-        self.computer_ai.register_result(row, col, hit)
+        
+        # Update AI if we have one
+        if self.computer_ai:
+            self.computer_ai.register_result(row, col, hit)
         
         # Check if all player ships are sunk
         if self.player_board.all_ships_sunk():
@@ -129,6 +157,17 @@ class GameState:
     
     def restart_game(self):
         """Restart the game"""
+        # Save AI model before resetting if we were in single player mode
+        if self.game_mode == self.SINGLE_PLAYER and self.computer_ai:
+            try:
+                os.makedirs("models", exist_ok=True)  # Create directory if it doesn't exist
+                self.computer_ai.save_model()
+                print("AI model saved successfully")
+            except Exception as e:
+                print(f"Could not save AI model: {e}")
+        
         self.state = self.MENU
         self.game_mode = None
+        self.winner = None
+        self.player_turn = True
         self.reset_game()

@@ -1,5 +1,4 @@
 import random
-import numpy as np
 import os
 import pickle
 from src.utils.constants import GRID_SIZE
@@ -239,12 +238,16 @@ class ReinforcementLearningAI:
     
     def _get_max_q_value(self, state):
         """Get the maximum Q-value for all possible actions in a state"""
-        max_q = 0
-        # Only check valid moves instead of all possible cells
-        for action in self._get_valid_moves():
-            q_value = self.q_table.get((state, action), 0)
-            max_q = max(max_q, q_value)
-        return max_q
+        try:
+            max_q = 0
+            # Only check valid moves instead of all possible cells
+            for action in self._get_valid_moves():
+                q_value = self.q_table.get((state, action), 0)
+                max_q = max(max_q, q_value)
+            return max_q
+        except Exception as e:
+            print(f"Error in _get_max_q_value: {e}")
+            return 0
     
     def end_game(self, won):
         """Called at the end of a game for final learning updates"""
@@ -285,10 +288,13 @@ class ReinforcementLearningAI:
             # Create directory if it doesn't exist
             os.makedirs("models", exist_ok=True)
             
+            # Prune the Q-table before saving to reduce file size
+            pruned_q_table = {k: v for k, v in self.q_table.items() if v > 0}
+            
             # Use a more efficient binary protocol
             with open("models/battleship_rl_model.pkl", "wb") as f:
-                pickle.dump(self.q_table, f, protocol=pickle.HIGHEST_PROTOCOL)
-            print("Saved AI model successfully")
+                pickle.dump(pruned_q_table, f, protocol=pickle.HIGHEST_PROTOCOL)
+            print(f"Saved AI model successfully ({len(pruned_q_table)} states)")
         except Exception as e:
             print(f"Error saving AI model: {e}")
     
@@ -303,99 +309,6 @@ class ReinforcementLearningAI:
         except Exception as e:
             print(f"Error loading AI model: {e}")
 
-# Keep the ComputerAI class unchanged
-class ComputerAI:
-    """AI for computer player"""
-    
-    def __init__(self, player_board):
-        self.player_board = player_board
-        self.last_hit = None
-        self.direction = None
-        self.target_queue = []
-    
-    def get_attack_coordinates(self):
-        """Determine where the computer should attack next"""
-        # If we have a queue of target positions from previous hits
-        if self.target_queue:
-            return self.target_queue.pop(0)
-        
-        # If we have a last hit but no direction yet, try all directions
-        if self.last_hit and not self.direction:
-            row, col = self.last_hit
-            # Check all four directions around the hit
-            for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-                nr, nc = row + dr, col + dc
-                if (0 <= nr < GRID_SIZE and 0 <= nc < GRID_SIZE and 
-                    self.player_board.view[nr][nc] == '.'):
-                    self.target_queue.append((nr, nc))
-            
-            if self.target_queue:
-                return self.target_queue.pop(0)
-        
-        # If we have a hit and a direction, continue in that direction
-        if self.last_hit and self.direction:
-            row, col = self.last_hit
-            dr, dc = self.direction
-            nr, nc = row + dr, col + dc
-            
-            if (0 <= nr < GRID_SIZE and 0 <= nc < GRID_SIZE and 
-                self.player_board.view[nr][nc] == '.'):
-                return nr, nc
-            
-            # If we can't continue, try the opposite direction
-            nr, nc = row - dr, col - dc
-            if (0 <= nr < GRID_SIZE and 0 <= nc < GRID_SIZE and 
-                self.player_board.view[nr][nc] == '.'):
-                self.direction = (-dr, -dc)
-                return nr, nc
-            
-            # If we can't continue in either direction, reset
-            self.last_hit = None
-            self.direction = None
-        
-        # If no targeted attack, find all valid moves
-        valid_moves = []
-        for r in range(GRID_SIZE):
-            for c in range(GRID_SIZE):
-                if self.player_board.view[r][c] == '.':
-                    valid_moves.append((r, c))
-        
-        if not valid_moves:
-            return None, None  # No valid moves available
-        
-        # Prioritize positions adjacent to hits
-        adjacent_to_hit = []
-        for r in range(GRID_SIZE):
-            for c in range(GRID_SIZE):
-                if self.player_board.view[r][c] == 'X':
-                    for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-                        nr, nc = r + dr, c + dc
-                        if (0 <= nr < GRID_SIZE and 0 <= nc < GRID_SIZE and 
-                            self.player_board.view[nr][nc] == '.'):
-                            adjacent_to_hit.append((nr, nc))
-        
-        # Try to attack adjacent to a hit with high probability
-        if adjacent_to_hit and random.random() < 0.8:
-            return random.choice(adjacent_to_hit)
-        
-        # Otherwise, pick a random valid move
-        return random.choice(valid_moves)
-    
-    def register_result(self, row, col, hit):
-        """Register the result of an attack"""
-        if hit:
-            # If this is a new hit (not part of a sequence)
-            if not self.last_hit:
-                self.last_hit = (row, col)
-            else:
-                # If we already had a last hit, we can determine direction
-                last_row, last_col = self.last_hit
-                if last_row == row:  # Horizontal
-                    self.direction = (0, 1 if col > last_col else -1)
-                else:  # Vertical
-                    self.direction = (1 if row > last_row else -1, 0)
-                self.last_hit = (row, col)
-        else:
-            # If miss and we were following a direction, try opposite
-            if self.direction:
-                self.direction = (-self.direction[0], -self.direction[1])
+    def get_next_move(self):
+        """Alias for get_attack_coordinates for compatibility"""
+        return self.get_attack_coordinates()
