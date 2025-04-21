@@ -16,6 +16,7 @@ def load_background(resolution):
 def initialize_fonts():
     """Initialize and return the fonts used in the game"""
     fonts = {
+        "medium": pygame.font.SysFont("Times New Roman", 40),
         "large": pygame.font.SysFont("Times New Roman", 60),
         "button": pygame.font.Font(None, 50),
         "small": pygame.font.Font(None, 30)

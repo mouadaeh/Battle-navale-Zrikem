@@ -40,8 +40,17 @@ def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
 
 def draw_ship_selection(screen, game_state, fonts):
     """Draw the ship selection UI during placement phase"""
+    # Position the ship selection on the left side of the screen
     start_x = 50
-    start_y = 100
+    start_y = screen.get_height() // 2 - 100
+    
+    # Background rectangle for ship selection
+    selection_bg = pygame.Rect(start_x - 40, start_y - 50, 370, len(game_state.ships) * 50 + 100)
+    pygame.draw.rect(screen, (50, 50, 70), selection_bg, border_radius=10)
+    
+    # Title
+    title_text = fonts["button"].render("Navires à placer:", True, WHITE)
+    screen.blit(title_text, (start_x, start_y - 50))
     
     for index, ship in enumerate(game_state.ships):
         if index < game_state.current_ship_index:
@@ -61,8 +70,8 @@ def draw_ship_selection(screen, game_state, fonts):
         if index == game_state.current_ship_index:
             orientation = "Horizontal" if game_state.horizontal else "Vertical"
             orient_text = pygame.font.Font(None, 30).render(
-                f"Orientation: {orientation} (Press R to rotate)", True, WHITE)
-            screen.blit(orient_text, (start_x, start_y + len(game_state.ships) * 50 + 20))
+                f"Orientation: {orientation} (R to rotate)", True, WHITE)
+            screen.blit(orient_text, (start_x-30, start_y + len(game_state.ships) * 50 + 20))
 
 def draw_game_end(screen, winner, fonts, restart_action):
     """Draw the end game screen"""
