@@ -85,7 +85,7 @@ def draw_ship_selection(screen, game_state, fonts):
     panel_height = screen_height * 0.55  # 55% of screen height (was 50%)
     
     # Background rectangle for ship selection
-    selection_bg = pygame.Rect(start_x, start_y, panel_width, panel_height)
+    selection_bg = pygame.Rect(start_x, start_y, panel_width-50, panel_height)
     pygame.draw.rect(screen, (50, 50, 70), selection_bg, border_radius=10)
     
     # Title position relative to panel
@@ -102,10 +102,10 @@ def draw_ship_selection(screen, game_state, fonts):
     for index, ship in enumerate(game_state.ships):
         if index < game_state.current_ship_index:
             color = (100, 100, 100)  # Gray for placed ships
-            status = "✓"
+            status = " "
         elif index == game_state.current_ship_index:
             color = GREEN
-            status = "→"
+            status = " "
         else:
             color = WHITE
             status = " "
@@ -122,7 +122,7 @@ def draw_ship_selection(screen, game_state, fonts):
             orient_text = pygame.font.Font(None, 30).render(
                 f"Orientation: {orientation}", True, WHITE)
             rotate_text = pygame.font.Font(None, 30).render(
-                f"Appuyez sur R pour pivoter", True, (255, 255, 0))  # Yellow for emphasis
+                f"Appuyez sur R pour rotation", True, (255, 255, 0))  # Yellow for emphasis
             
             # Move texts further left and adjust vertical position
             orient_x = start_x + panel_width * 0.05  # 5% padding (was 10%)
