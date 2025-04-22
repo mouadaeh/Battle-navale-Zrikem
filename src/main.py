@@ -21,17 +21,32 @@ pygame.init()
 # Initialize mixer for music
 pygame.mixer.init()
 
+# After pygame.init() and mixer initialization
+# Add these variables
+music_muted = False
+mute_button_rect = pygame.Rect(10, 10, 100, 30)  # Position and size of mute button
+
 # Load and start background music
 def initialize_music():
+    global music_muted
     try:
         music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'background.mp3')
         print(f"Loading music from: {music_path}")  # Debug print
         pygame.mixer.music.load(music_path)
         pygame.mixer.music.set_volume(0.5)
-        pygame.mixer.music.play(-1)
+        if not music_muted:
+            pygame.mixer.music.play(-1)
     except Exception as e:
         print(f"Error loading music: {e}")
         print(f"Current working directory: {os.getcwd()}")  # Debug print
+
+def toggle_music():
+    global music_muted
+    music_muted = not music_muted
+    if music_muted:
+        pygame.mixer.music.pause()
+    else:
+        pygame.mixer.music.unpause()
 
 # Initialize music
 initialize_music()  # Add this line here
@@ -473,6 +488,18 @@ while running:
     # Update effects
     effects_manager.update_effects(screen)
     effects_manager.update_animated_messages(screen)
+    
+    # Draw mute button
+    pygame.draw.rect(screen, WHITE if not music_muted else RED, mute_button_rect)
+    mute_text = fonts["small"].render("🔊 ON" if not music_muted else "🔇 OFF", True, GRAY)
+    text_rect = mute_text.get_rect(center=mute_button_rect.center)
+    screen.blit(mute_text, text_rect)
+
+    # Handle mute button clicks
+    for event in pygame.event.get([pygame.MOUSEBUTTONDOWN]):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if mute_button_rect.collidepoint(event.pos):
+                toggle_music()
     
     pygame.display.flip()
     clock.tick(FPS)
