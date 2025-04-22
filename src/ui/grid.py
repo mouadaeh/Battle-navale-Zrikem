@@ -1,7 +1,7 @@
 import pygame
-from src.utils.constants import RED, BLACK, WHITE, GREEN, SKY_BLUE, BLUE
+from src.utils.constants import RED, BLACK, WHITE, GREEN, SKY_BLUE, BLUE, WATER_PATH
 
-def draw_grid(screen, board, fonts, reveal=False, is_player_grid=True, position="center"):
+def draw_grid(screen, board, fonts, assets=None, reveal=False, is_player_grid=True, position="center"):
     """Draw a game board grid with ships and hits/misses"""
     # Setup - Move title higher up
     title = fonts["large"].render("Bataille Navale", True, BLUE)
@@ -28,7 +28,26 @@ def draw_grid(screen, board, fonts, reveal=False, is_player_grid=True, position=
     cell_width = board.width / len(board.grid[0])
     cell_height = board.height / len(board.grid)
     
-    # Draw the grid
+    # Draw water background if available
+    has_water_image = assets and "water" in assets
+    if has_water_image:
+        # Get the water image
+        water_img = assets["water"]
+        water_width = water_img.get_width()
+        water_height = water_img.get_height()
+        
+        # Create a temporary surface for the entire grid and tile the water image
+        grid_surface = pygame.Surface((board.width, board.height))
+        
+        # Tile the water image across the grid
+        for y in range(0, int(board.height), water_height):
+            for x in range(0, int(board.width), water_width):
+                grid_surface.blit(water_img, (x, y))
+        
+        # Draw the tiled water background
+        screen.blit(grid_surface, (start_x, start_y))
+    
+    # Draw the grid cells and content
     for row in range(len(board.grid)):
         for col in range(len(board.grid[row])):
             rect = pygame.Rect(
@@ -38,19 +57,29 @@ def draw_grid(screen, board, fonts, reveal=False, is_player_grid=True, position=
                 cell_height,
             )
             
-            # Draw cells based on state
-            if board.view[row][col] == 'X':
-                pygame.draw.rect(screen, RED, rect)
-                pygame.draw.rect(screen, BLACK, rect, 2)  # Border
-            elif board.view[row][col] == 'O':
-                pygame.draw.rect(screen, WHITE, rect)
-                pygame.draw.rect(screen, BLACK, rect, 2)  # Border
-            elif board.grid[row][col] != '.' and reveal:
-                pygame.draw.rect(screen, GREEN, rect)
-                pygame.draw.rect(screen, BLACK, rect, 2)  # Border
-            else:
+            # Only draw sky blue background if we don't have a water image
+            if not has_water_image:
                 pygame.draw.rect(screen, SKY_BLUE, rect)
-                pygame.draw.rect(screen, BLUE, rect, 2)  # Border
+            
+            # Always draw grid lines
+            pygame.draw.rect(screen, BLUE, rect, 1)
+            
+            # Draw ships, hits and misses
+            if board.view[row][col] == 'X':
+                # Hit marker
+                pygame.draw.line(screen, RED, 
+                               (rect.left + 5, rect.top + 5), 
+                               (rect.right - 5, rect.bottom - 5), 3)
+                pygame.draw.line(screen, RED, 
+                               (rect.right - 5, rect.top + 5), 
+                               (rect.left + 5, rect.bottom - 5), 3)
+            elif board.view[row][col] == 'O':
+                # Miss marker
+                pygame.draw.circle(screen, WHITE, rect.center, min(rect.width, rect.height) // 3, 2)
+            elif board.grid[row][col] != '.' and reveal:
+                # Ship marker
+                ship_rect = rect.inflate(-4, -4)  # Make ship slightly smaller than cell
+                pygame.draw.rect(screen, GREEN, ship_rect)
     
     # Draw subtitle BELOW the grid instead of above it
     screen.blit(subtitle, (start_x + board.width // 2 - subtitle.get_width() // 2, 

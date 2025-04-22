@@ -37,6 +37,8 @@ FPS = 60
 # Background path
 BACKGROUND_PATH = os.path.join("assets", "background", "background1.jpg")
 
+WATER_PATH = os.path.join("assets", "map", "tiled_sea.png")  # Adjust path as needed
+
 # Timing constants
 BUTTON_COOLDOWN = 60  # Standard cooldown for buttons
 MESSAGE_DURATION = 60  # Standard duration for messages

@@ -48,7 +48,7 @@ def handle_placement():
     draw_ship_selection(screen, game_state, fonts)
     
     # Draw only player's grid in the center during placement
-    player_x, player_y = draw_grid(screen, game_state.player_board, fonts, reveal=True, 
+    player_x, player_y = draw_grid(screen, game_state.player_board, fonts, assets, reveal=True, 
                                   is_player_grid=True, position="center")
     
     # Set a cooldown when entering placement state to prevent accidental clicks
@@ -198,9 +198,9 @@ def handle_game():
     # If we're in a cooldown period (transitioning from placement), show message but don't process game logic
     if button_cooldown > 0:
         # Draw both grids side by side
-        player_x, player_y = draw_grid(screen, game_state.player_board, fonts, reveal=True, 
+        player_x, player_y = draw_grid(screen, game_state.player_board, fonts, assets, reveal=True, 
                                      is_player_grid=True, position="left")
-        comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, reveal=False, 
+        comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, assets, reveal=False, 
                                   is_player_grid=False, position="right")
         
         # Show transition message
@@ -215,9 +215,9 @@ def handle_game():
     # In single player mode
     if game_state.game_mode == GameState.SINGLE_PLAYER:
         # Always draw both grids
-        player_x, player_y = draw_grid(screen, game_state.player_board, fonts, reveal=True, 
+        player_x, player_y = draw_grid(screen, game_state.player_board, fonts, assets, reveal=True, 
                                      is_player_grid=True, position="left")
-        comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, reveal=False, 
+        comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, assets, reveal=False, 
                                   is_player_grid=False, position="right")
         
         # Player's turn

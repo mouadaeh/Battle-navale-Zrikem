@@ -63,12 +63,13 @@ def draw_ship_selection(screen, game_state, fonts):
     screen_width, screen_height = screen.get_width(), screen.get_height()
     
     # Position the ship selection on the left side of the screen
-    start_x = screen_width * 0.05  # 5% from left edge
+    # Move further left and make wider
+    start_x = screen_width * 0.03  # 3% from left edge (was 5%)
     start_y = screen_height * 0.3   # 30% from top
     
-    # Calculate panel dimensions based on content
-    panel_width = screen_width * 0.25  # 25% of screen width
-    panel_height = screen_height * 0.5  # 50% of screen height
+    # Make panel wider and slightly taller
+    panel_width = screen_width * 0.30  # 30% of screen width (was 25%)
+    panel_height = screen_height * 0.55  # 55% of screen height (was 50%)
     
     # Background rectangle for ship selection
     selection_bg = pygame.Rect(start_x, start_y, panel_width, panel_height)
@@ -76,13 +77,13 @@ def draw_ship_selection(screen, game_state, fonts):
     
     # Title position relative to panel
     title_text = fonts["button"].render("Navires à placer:", True, WHITE)
-    title_x = start_x + panel_width * 0.1  # 10% padding within panel
+    title_x = start_x + panel_width * 0.05  # 5% padding (was 10%)
     title_y = start_y + panel_height * 0.05  # 5% padding from top of panel
     screen.blit(title_text, (title_x, title_y))
     
     # Calculate spacing for ships list
     ships_start_y = title_y + title_text.get_height() + panel_height * 0.05
-    ship_spacing = (panel_height * 0.6) / len(game_state.ships)  # 60% of panel height divided by ships count
+    ship_spacing = (panel_height * 0.6) / len(game_state.ships)
     
     # Draw ships list
     for index, ship in enumerate(game_state.ships):
@@ -103,11 +104,21 @@ def draw_ship_selection(screen, game_state, fonts):
         # Show rotation info at bottom of panel
         if index == game_state.current_ship_index:
             orientation = "Horizontal" if game_state.horizontal else "Vertical"
+            
+            # Create a better orientation display
             orient_text = pygame.font.Font(None, 30).render(
-                f"Orientation: {orientation} (R to rotate)", True, WHITE)
-            orient_x = start_x + panel_width * 0.1  # 10% padding within panel
-            orient_y = start_y + panel_height * 0.85  # 85% down the panel
+                f"Orientation: {orientation}", True, WHITE)
+            rotate_text = pygame.font.Font(None, 30).render(
+                f"Appuyez sur R pour pivoter", True, (255, 255, 0))  # Yellow for emphasis
+            
+            # Move texts further left and adjust vertical position
+            orient_x = start_x + panel_width * 0.05  # 5% padding (was 10%)
+            orient_y = start_y + panel_height * 0.80  # 80% down the panel
+            rotate_y = orient_y + orient_text.get_height() + 5  # Below orientation text
+            
+            # Display both texts
             screen.blit(orient_text, (orient_x, orient_y))
+            screen.blit(rotate_text, (orient_x, rotate_y))
 
 def draw_game_end(screen, winner, fonts, restart_action):
     """Draw the end game screen with responsive layout"""
