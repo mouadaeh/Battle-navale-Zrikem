@@ -1,6 +1,6 @@
 import pygame
 import os
-from src.utils.constants import BACKGROUND_PATH
+from src.utils.constants import BACKGROUND_PATH, WATER_PATH
 
 def load_assets(resolution):
     """Load all game assets"""
@@ -16,6 +16,16 @@ def load_assets(resolution):
         bg = pygame.Surface(resolution)
         bg.fill((30, 50, 90))  # Dark blue
         assets["background"] = bg
+    
+     # Load water image for grid
+    try:
+        water = pygame.image.load(WATER_PATH)
+        # No need to scale it here - we'll tile it in the grid drawing function
+        assets["water"] = water
+        print("Water image loaded successfully")
+    except Exception as e:
+        print(f"Error loading water image: {e}")
+        # We'll fall back to the default sky blue if this fails
     
     # Load ship images
     try:
