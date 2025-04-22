@@ -45,45 +45,44 @@ def handle_placement():
     # Draw ship selection
     draw_ship_selection(screen, game_state, fonts)
     
-    # Draw only player's grid in the center during placement
-    player_x, player_y = draw_grid(screen, game_state.player_board, fonts, reveal=True, 
+    # Determine which player's board to show
+    active_board = game_state.player_board if game_state.current_placing_player == 1 else game_state.player2_board
+    player_text = f"Placement du Joueur {game_state.current_placing_player}" if game_state.game_mode == game_state.MULTIPLAYER else "Placement de vos navires"
+    player_label = fonts["large"].render(player_text, True, WHITE)
+    screen.blit(player_label, (resolution[0] // 2 - player_label.get_width() // 2, 50))
+    
+    # Draw the active player's grid in the center
+    player_x, player_y = draw_grid(screen, active_board, fonts, reveal=True, 
                                   is_player_grid=True, position="center")
     
-    # Set a cooldown when entering placement state to prevent accidental clicks
     if button_cooldown > 0:
-        # Show the message if needed
         if message_timer > 0:
             message = fonts["small"].render(message_text, True, message_color)
-            screen.blit(message, (player_x, player_y + game_state.player_board.height + 20))
+            screen.blit(message, (player_x, player_y + active_board.height + 20))
         return
     
-    # Stocker les événements dans une variable locale pour éviter de les traiter plusieurs fois
     current_events = pygame.event.get()
     
-    # Process events directly to fix input issues
     for event in current_events:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
             
-        # Handle key presses for rotation
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r and game_state.rotation_cooldown == 0:
                 game_state.horizontal = not game_state.horizontal
-                game_state.rotation_cooldown = 15  # frames of cooldown
-                # Show rotation message
+                game_state.rotation_cooldown = 15
                 message_text = f"Rotation: {'Horizontale' if game_state.horizontal else 'Verticale'}"
                 message_color = WHITE
                 message_timer = 60
                 
-        # Handle mouse clicks for placement
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = pygame.mouse.get_pos()
             
-            cell_size = game_state.player_board.width / len(game_state.player_board.grid[0])
+            cell_size = active_board.width / len(active_board.grid[0])
             
-            if (player_x <= mouse_pos[0] < player_x + game_state.player_board.width and 
-                player_y <= mouse_pos[1] < player_y + game_state.player_board.height):
+            if (player_x <= mouse_pos[0] < player_x + active_board.width and 
+                player_y <= mouse_pos[1] < player_y + active_board.height):
                 
                 col = int((mouse_pos[0] - player_x) // cell_size)
                 row = int((mouse_pos[1] - player_y) // cell_size)
@@ -91,81 +90,79 @@ def handle_placement():
                 if game_state.current_ship_index < len(game_state.ships):
                     ship = game_state.ships[game_state.current_ship_index]
                     if game_state.place_player_ship(row, col, ship['size'], game_state.horizontal):
-                        # Show placement success message
                         message_text = f"{ship['name']} placé!"
                         message_color = GREEN
                         message_timer = 60
                         
                         game_state.current_ship_index += 1
                         if game_state.current_ship_index >= len(game_state.ships):
-                            # Add a delay and display a transition message
-                            message_text = "Tous les navires sont placés! La partie commence..."
-                            message_color = GREEN
-                            message_timer = 60  # About 1.5 seconds at 60 FPS
-                            button_cooldown = 90  # Same duration as message
-                            # Change state after displaying message 
-                            game_state.state = GameState.GAME
+                            if game_state.game_mode == game_state.MULTIPLAYER and game_state.current_placing_player == 1:
+                                game_state.current_placing_player = 2
+                                game_state.current_ship_index = 0
+                                message_text = "Tour du Joueur 2 pour placer les navires"
+                                message_color = GREEN
+                                message_timer = 90
+                                button_cooldown = 90
+                            else:
+                                message_text = "Tous les navires sont placés! La partie commence..."
+                                message_color = GREEN
+                                message_timer = 90
+                                button_cooldown = 90
+                                game_state.state = game_state.GAME
     
-    # Handle ship rotation cooldown
     if game_state.rotation_cooldown > 0:
         game_state.rotation_cooldown -= 1
     
-    # Display any active messages
     if message_timer > 0:
         message = fonts["small"].render(message_text, True, message_color)
-        screen.blit(message, (player_x, player_y + game_state.player_board.height + 20))
+        screen.blit(message, (player_x, player_y + active_board.height + 20))
 
 def handle_game():
     """Handle the game phase (player turns, computer turns)"""
     global message_timer, message_text, message_color, waiting_for_action, button_cooldown
     
-    # If we're in a cooldown period (transitioning from placement), show message but don't process game logic
     if button_cooldown > 0:
-        # Draw both grids side by side
-        player_x, player_y = draw_grid(screen, game_state.player_board, fonts, reveal=True, 
-                                     is_player_grid=True, position="left")
-        comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, reveal=False, 
-                                  is_player_grid=False, position="right")
+        if game_state.game_mode == game_state.SINGLE_PLAYER:
+            player_x, player_y = draw_grid(screen, game_state.player_board, fonts, reveal=True, 
+                                         is_player_grid=True, position="left")
+            comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, reveal=False, 
+                                      is_player_grid=False, position="right")
+            max_y = max(player_y, comp_y)
+        else:
+            player1_x, player1_y = draw_grid(screen, game_state.player_board, fonts, reveal=game_state.current_attacking_player == 1, 
+                                            is_player_grid=True, position="left")
+            player2_x, player2_y = draw_grid(screen, game_state.player2_board, fonts, reveal=game_state.current_attacking_player == 2, 
+                                            is_player_grid=True, position="right")
+            max_y = max(player1_y, player2_y)
         
-        # Show transition message
         message = fonts["small"].render(message_text, True, message_color)
         screen.blit(message, (resolution[0] // 2 - message.get_width() // 2, 
-                              max(player_y, comp_y) + game_state.player_board.height + 20))
+                              max_y + game_state.player_board.height + 20))
         return
     
-    # Handle game events
     events = pygame.event.get([pygame.MOUSEBUTTONDOWN])
     
-    # In single player mode
-    if game_state.game_mode == GameState.SINGLE_PLAYER:
-        # Always draw both grids
+    if game_state.game_mode == game_state.SINGLE_PLAYER:
         player_x, player_y = draw_grid(screen, game_state.player_board, fonts, reveal=True, 
                                      is_player_grid=True, position="left")
         comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, reveal=False, 
                                   is_player_grid=False, position="right")
         
-        # Player's turn
         if game_state.player_turn:
-            # Highlight active grid with indicator - MOVED TO THE RIGHT
             turn_indicator = fonts["small"].render("Votre tour ←", True, GREEN)
-            # Position the text to the right of the computer grid
             indicator_x = comp_x + game_state.computer_board.width - turn_indicator.get_width()
             screen.blit(turn_indicator, (indicator_x - 20, comp_y - 60))
             
-            # Instructions - MOVED TO THE RIGHT
             instructions = fonts["small"].render("Cliquez ici pour attaquer", True, WHITE)
-            # Position the text centered on the computer grid
             instructions_x = comp_x + (game_state.computer_board.width // 2) - (instructions.get_width() // 2)
             screen.blit(instructions, (instructions_x, comp_y - 30))
             
-            # If a message is being displayed
             if message_timer > 0:
                 message = fonts["small"].render(message_text, True, message_color)
                 screen.blit(message, (resolution[0] // 2 - message.get_width() // 2, 
                                     max(player_y, comp_y) + game_state.player_board.height + 20))
                 return
             
-            # Process player click events
             for event in events:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     mouse_pos = event.pos
@@ -179,10 +176,8 @@ def handle_game():
                         row = int((mouse_pos[1] - comp_y) // cell_size)
                         
                         if game_state.computer_board.view[row][col] == '.':
-                            # Player attacks
                             hit = game_state.player_attack(row, col)
                             
-                            # Add visual effect
                             effect_x = comp_x + col * cell_size + cell_size / 2
                             effect_y = comp_y + row * cell_size + cell_size / 2
                             
@@ -199,7 +194,6 @@ def handle_game():
                                 message_color = WHITE
                                 message_timer = 75
                                 
-                                # Check game end
                                 if game_state.winner is not None:
                                     effects_manager.create_animated_message(
                                         "VICTOIRE!", GREEN, 
@@ -219,35 +213,28 @@ def handle_game():
                                 
                                 message_timer = 90
                                 game_state.player_turn = False
+                                effects_manager.start_turn_transition(resolution, False, GREEN, RED)
         
-        # Computer's turn
         else:
-            # Highlight active grid with indicator - MOVED TO THE LEFT
             turn_indicator = fonts["small"].render("→ Tour de l'ordinateur", True, RED)
             screen.blit(turn_indicator, (player_x - 20, player_y - 60))
             
-            # Add instructions for computer's turn
             instructions = fonts["small"].render("L'ordinateur attaque ici", True, WHITE)
-            # Position the text centered on the player grid
             instructions_x = player_x + (game_state.player_board.width // 2) - (instructions.get_width() // 2)
             screen.blit(instructions, (instructions_x, player_y - 30))
             
-            # If a message is being displayed
             if message_timer > 0:
                 message = fonts["small"].render(message_text, True, message_color)
                 screen.blit(message, (resolution[0] // 2 - message.get_width() // 2, 
                                     max(player_y, comp_y) + game_state.player_board.height + 20))
                 return
             
-            # Computer's turn logic
             if not waiting_for_action:
-                # Show that the computer is thinking
                 message_text = "L'ordinateur réfléchit..."
                 message_color = WHITE
                 message_timer = 90
                 waiting_for_action = True
                 
-                # Add a "thinking" animation
                 for i in range(3):
                     effects_manager.create_animated_message(
                         "⏳", WHITE, 
@@ -257,15 +244,12 @@ def handle_game():
                     )
                 return
             
-            # Reset waiting state
             waiting_for_action = False
             
-            # Computer makes a move
             try:
                 row, col, hit = game_state.computer_attack()
                 
                 if row is not None:
-                    # Add visual effect
                     cell_size = game_state.player_board.width / len(game_state.player_board.grid[0])
                     effect_x = player_x + col * cell_size + cell_size / 2
                     effect_y = player_y + row * cell_size + cell_size / 2
@@ -283,7 +267,6 @@ def handle_game():
                         message_color = WHITE
                         message_timer = 90
                         
-                        # Check game end
                         if game_state.winner is not None:
                             effects_manager.create_animated_message(
                                 "DÉFAITE!", RED, 
@@ -305,81 +288,143 @@ def handle_game():
                         message_color = WHITE
                         message_timer = 75
                         game_state.player_turn = True
+                        effects_manager.start_turn_transition(resolution, True, GREEN, RED)
                 else:
-                    # If no valid moves found
                     message_text = "Aucun coup possible - Votre tour"
                     message_color = WHITE
                     message_timer = 40
                     game_state.player_turn = True
+                    effects_manager.start_turn_transition(resolution, True, GREEN, RED)
             except Exception as e:
                 print(f"Erreur pendant le tour de l'ordinateur: {e}")
-                # In case of error, give turn to player
                 message_text = "Erreur IA - Votre tour"
                 message_color = RED
                 message_timer = 40
                 game_state.player_turn = True
-
-    # Multiplayer mode (not fully implemented)
+                effects_manager.start_turn_transition(resolution, True, GREEN, RED)
+    
     else:
-        # Placeholder UI for multiplayer
-        multiplayer_text = fonts["large"].render("Mode multijoueur pas encore implémenté", True, WHITE)
-        screen.blit(multiplayer_text, (resolution[0] // 2 - multiplayer_text.get_width() // 2, resolution[1] // 2))
+        # Multiplayer mode
+        player1_x, player1_y = draw_grid(screen, game_state.player_board, fonts, reveal=game_state.current_attacking_player == 1, 
+                                        is_player_grid=True, position="left")
+        player2_x, player2_y = draw_grid(screen, game_state.player2_board, fonts, reveal=game_state.current_attacking_player == 2, 
+                                        is_player_grid=True, position="right")
+        
+        active_player = game_state.current_attacking_player
+        opponent_board = game_state.player2_board if active_player == 1 else game_state.player_board
+        opponent_x, opponent_y = (player2_x, player2_y) if active_player == 1 else (player1_x, player1_y)
+        
+        turn_indicator = fonts["small"].render(f"Tour du Joueur {active_player} ←", True, GREEN if active_player == 1 else RED)
+        indicator_x = opponent_x + opponent_board.width - turn_indicator.get_width()
+        screen.blit(turn_indicator, (indicator_x - 20, opponent_y - 60))
+        
+        instructions = fonts["small"].render("Cliquez ici pour attaquer", True, WHITE)
+        instructions_x = opponent_x + (opponent_board.width // 2) - (instructions.get_width() // 2)
+        screen.blit(instructions, (instructions_x, opponent_y - 30))
+        
+        if message_timer > 0:
+            message = fonts["small"].render(message_text, True, message_color)
+            screen.blit(message, (resolution[0] // 2 - message.get_width() // 2, 
+                                max(player1_y, player2_y) + game_state.player_board.height + 20))
+            return
+        
+        for event in events:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = event.pos
+                
+                cell_size = opponent_board.width / len(opponent_board.grid[0])
+                
+                if (opponent_x <= mouse_pos[0] < opponent_x + opponent_board.width and 
+                    opponent_y <= mouse_pos[1] < opponent_y + opponent_board.height):
+                    
+                    col = int((mouse_pos[0] - opponent_x) // cell_size)
+                    row = int((mouse_pos[1] - opponent_y) // cell_size)
+                    
+                    if opponent_board.view[row][col] == '.':
+                        hit = game_state.player_attack(row, col)
+                        
+                        effect_x = opponent_x + col * cell_size + cell_size / 2
+                        effect_y = opponent_y + row * cell_size + cell_size / 2
+                        
+                        if hit:
+                            effects_manager.create_hit_effect(effect_x, effect_y)
+                            effects_manager.create_animated_message(
+                                "TOUCHÉ!", RED, 
+                                opponent_x + opponent_board.width // 2,
+                                opponent_y + opponent_board.height + 40, 
+                                duration=90
+                            )
+                            
+                            message_text = f"Joueur {active_player} rejoue"
+                            message_color = WHITE
+                            message_timer = 75
+                            
+                            if game_state.winner is not None:
+                                effects_manager.create_animated_message(
+                                    f"VICTOIRE JOUEUR {active_player}!", GREEN, 
+                                    resolution[0] // 2, 
+                                    resolution[1] // 2, 
+                                    duration=180
+                                )
+                                return
+                        else:
+                            effects_manager.create_miss_effect(effect_x, effect_y)
+                            effects_manager.create_animated_message(
+                                "MANQUÉ!", WHITE, 
+                                opponent_x + opponent_board.width // 2,
+                                opponent_y + opponent_board.height + 40, 
+                                duration=90
+                            )
+                            
+                            message_text = f"Tour du Joueur {2 if active_player == 1 else 1}"
+                            message_color = WHITE
+                            message_timer = 75
+                            game_state.current_attacking_player = 2 if active_player == 1 else 1
+                            effects_manager.start_turn_transition(resolution, active_player == 2, GREEN, RED)
 
 # Main game loop
 running = True
 clock = pygame.time.Clock()
-# Variable pour suivre si on vient de changer d'état
 recently_changed_state = False
 previous_state = None
 
 while running:
-    # Only handle quit events in the main loop
     for event in pygame.event.get([pygame.QUIT]):
         if event.type == pygame.QUIT:
             running = False
     
-    # Clear screen
     screen.fill(GRAY)
     
-    # Update timers
     if button_cooldown > 0:
         button_cooldown -= 1
     
     if message_timer > 0:
         message_timer -= 1
     
-    # Vérifier si l'état a changé
     if previous_state != game_state.state:
         previous_state = game_state.state
         recently_changed_state = True
-        # Force un cooldown long lors du changement d'état pour éviter les clics automatiques
-        button_cooldown = 60  # Assez long pour éviter le clic automatique
+        button_cooldown = 60
         
-        # Reset message when changing states to avoid old messages carrying over
-        if game_state.state == GameState.GAME:
+        if game_state.state == game_state.GAME:
             message_text = ""
             message_timer = 0
             waiting_for_action = False
     
-    # Handle game state
-    if game_state.state == GameState.MENU:
-        # Transmet le statut de changement d'état récent à la fonction du menu
+    if game_state.state == game_state.MENU:
         result = draw_main_menu(screen, game_state, fonts, background, button_cooldown)
-        # Si on a appuyé sur start et qu'on change d'état, réinitialiser la variable
-        if result and recently_changed_state == False:
+        if result and not recently_changed_state:
             recently_changed_state = True
-    elif game_state.state == GameState.PLACEMENT:
+    elif game_state.state == game_state.PLACEMENT:
         handle_placement()
-        # Après avoir traité l'état de placement, réinitialiser le statut de changement
         recently_changed_state = False
-    elif game_state.state == GameState.GAME:
+    elif game_state.state == game_state.GAME:
         handle_game()
         recently_changed_state = False
-    elif game_state.state == GameState.END:
+    elif game_state.state == game_state.END:
         draw_game_end(screen, game_state.winner, fonts, game_state.restart_game)
         recently_changed_state = False
     
-    # Update effects
     effects_manager.update_effects(screen)
     effects_manager.update_animated_messages(screen)
     

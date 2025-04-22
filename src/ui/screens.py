@@ -1,99 +1,84 @@
 import pygame
-import sys
-from src.utils.constants import WHITE, GRAY, BLACK, GREEN, RED
-from src.ui.buttons import draw_button
+from src.utils.constants import WHITE, GRAY, GREEN, RED
 
-def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
+def draw_main_menu(screen, game_state, fonts, background, button_cooldown):
     """Draw the main menu screen"""
     screen.blit(background, (0, 0))
     
-    title_text = fonts["large"].render("Bataille Navale", True, WHITE)
-    screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, 100))
+    title = fonts["large"].render("Bataille Navale", True, WHITE)
+    title_rect = title.get_rect(center=(screen.get_width() // 2, 100))
+    screen.blit(title, title_rect)
     
-    # Single player button
-    draw_button(
-        screen,
-        "Joueur vs IA",
-        screen.get_width() // 2 - 150,
-        screen.get_height() // 2 - 100,
-        300,
-        80,
-        GRAY,
-        WHITE,
-        fonts["button"],
-        game_state.start_single_player if button_cooldown == 0 else None,
-    )
+    single_button_rect = pygame.Rect(screen.get_width() // 2 - 150, 300, 300, 50)
+    pygame.draw.rect(screen, GREEN, single_button_rect)
+    single_text = fonts["medium"].render("Joueur Solo", True, WHITE)
+    single_text_rect = single_text.get_rect(center=single_button_rect.center)
+    screen.blit(single_text, single_text_rect)
     
-    # Multiplayer button
-    draw_button(
-        screen,
-        "Deux Joueurs",
-        screen.get_width() // 2 - 150,
-        screen.get_height() // 2 + 20,
-        300,
-        80,
-        GRAY,
-        WHITE,
-        fonts["button"],
-        game_state.start_multiplayer if button_cooldown == 0 else None,
-    )
+    multi_button_rect = pygame.Rect(screen.get_width() // 2 - 150, 400, 300, 50)
+    pygame.draw.rect(screen, GREEN, multi_button_rect)
+    multi_text = fonts["medium"].render("Multijoueur", True, WHITE)
+    multi_text_rect = multi_text.get_rect(center=multi_button_rect.center)
+    screen.blit(multi_text, multi_text_rect)
+    
+    exit_button_rect = pygame.Rect(screen.get_width() // 2 - 150, 500, 300, 50)
+    pygame.draw.rect(screen, RED, exit_button_rect)
+    exit_text = fonts["medium"].render("Quitter", True, WHITE)
+    exit_text_rect = exit_text.get_rect(center=exit_button_rect.center)
+    screen.blit(exit_text, exit_text_rect)
+    
+    if button_cooldown > 0:
+        return False
+    
+    for event in pygame.event.get([pygame.MOUSEBUTTONDOWN]):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse_pos = event.pos
+            if single_button_rect.collidepoint(mouse_pos):
+                game_state.start_single_player()
+                return True
+            elif multi_button_rect.collidepoint(mouse_pos):
+                game_state.start_multiplayer()
+                return True
+            elif exit_button_rect.collidepoint(mouse_pos):
+                pygame.quit()
+                sys.exit()
+    
+    return False
 
 def draw_ship_selection(screen, game_state, fonts):
-    """Draw the ship selection UI during placement phase"""
-    # Position the ship selection on the left side of the screen
-    start_x = 50
-    start_y = screen.get_height() // 2 - 100
-    
-    # Background rectangle for ship selection
-    selection_bg = pygame.Rect(start_x - 40, start_y - 50, 370, len(game_state.ships) * 50 + 100)
-    pygame.draw.rect(screen, (50, 50, 70), selection_bg, border_radius=10)
-    
-    # Title
-    title_text = fonts["button"].render("Navires à placer:", True, WHITE)
-    screen.blit(title_text, (start_x, start_y - 50))
-    
-    for index, ship in enumerate(game_state.ships):
-        if index < game_state.current_ship_index:
-            color = (100, 100, 100)  # Gray for placed ships
-            status = "✓"
-        elif index == game_state.current_ship_index:
-            color = GREEN
-            status = "→"
-        else:
-            color = WHITE
-            status = " "
+    """Draw the ship selection UI"""
+    if game_state.current_ship_index < len(game_state.ships):
+        ship = game_state.ships[game_state.current_ship_index]
+        ship_text = fonts["medium"].render(f"Placement: {ship['name']} (Taille: {ship['size']})", True, WHITE)
+        screen.blit(ship_text, (screen.get_width() // 2 - ship_text.get_width() // 2, 150))
         
-        text = fonts["button"].render(f"{status} {ship['name']} ({ship['size']})", True, color)
-        screen.blit(text, (start_x, start_y + index * 50))
-        
-        # Show rotation info
-        if index == game_state.current_ship_index:
-            orientation = "Horizontal" if game_state.horizontal else "Vertical"
-            orient_text = pygame.font.Font(None, 30).render(
-                f"Orientation: {orientation} (R to rotate)", True, WHITE)
-            screen.blit(orient_text, (start_x-30, start_y + len(game_state.ships) * 50 + 20))
+        rotation_text = fonts["small"].render("Appuyez sur 'R' pour tourner", True, WHITE)
+        screen.blit(rotation_text, (screen.get_width() // 2 - rotation_text.get_width() // 2, 200))
 
-def draw_game_end(screen, winner, fonts, restart_action):
-    """Draw the end game screen"""
-    screen.fill(BLACK)
-    
+def draw_game_end(screen, winner, fonts, restart_callback):
+    """Draw the game end screen"""
     if winner == "player":
-        win_text = fonts["large"].render("Vous avez gagné !", True, WHITE)
+        winner_text = "Joueur gagne!"
+    elif winner == "computer":
+        winner_text = "Ordinateur gagne!"
     else:
-        win_text = fonts["large"].render("L'ordinateur a gagné !", True, WHITE)
+        winner_text = f"Joueur {winner[-1]} gagne!"  # e.g., "player1" or "player2"
+    winner_surface = fonts["large"].render(winner_text, True, WHITE)
+    winner_rect = winner_surface.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 50))
+    screen.blit(winner_surface, winner_rect)
     
-    screen.blit(win_text, (screen.get_width() // 2 - win_text.get_width() // 2, screen.get_height() // 2 - 50))
+    restart_text = fonts["medium"].render("Rejouer (R)", True, WHITE)
+    restart_rect = restart_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 50))
+    screen.blit(restart_text, restart_rect)
     
-    # Add restart button
-    draw_button(
-        screen,
-        "Nouvelle partie",
-        screen.get_width() // 2 - 150,
-        screen.get_height() // 2 + 50,
-        300,
-        80,
-        GRAY,
-        WHITE,
-        fonts["button"],
-        restart_action
-    )
+    quit_text = fonts["medium"].render("Quitter (Q)", True, WHITE)
+    quit_rect = quit_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 100))
+    screen.blit(quit_text, quit_rect)
+    
+    for event in pygame.event.get([pygame.KEYDOWN]):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_r:
+                restart_callback()
+            elif event.key == pygame.K_q:
+                pygame.quit()
+                sys.exit()
