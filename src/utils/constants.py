@@ -35,7 +35,7 @@ SHIPS = [
 FPS = 60
 
 # Background path
-BACKGROUND_PATH = os.path.join("assets", "images", "background1.jpg")
+BACKGROUND_PATH = os.path.join("assets", "background", "background1.jpg")
 
 # Timing constants
 BUTTON_COOLDOWN = 60  # Standard cooldown for buttons
