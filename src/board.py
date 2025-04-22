@@ -14,6 +14,10 @@ class Board:
     
     def place_ship(self, ship, row, col, is_horizontal):
         """Place a ship on the board"""
+        # Check bounds
+        if row < 0 or col < 0:
+            return False
+        
         # Check if placement is valid
         if is_horizontal and col + ship.size > GRID_SIZE:
             return False

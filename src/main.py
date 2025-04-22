@@ -1,6 +1,7 @@
 import pygame
 import sys
 import os
+import pygame.mixer
 
 # Make sure the current directory is in the path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -11,10 +12,44 @@ from src.animations import EffectsManager
 from src.ui.screens import draw_main_menu, draw_ship_selection, draw_game_end
 from src.ui.grid import draw_grid
 from src.utils.constants import WHITE, GRAY, GREEN, RED, FPS
-from src.utils.helpers import load_background, initialize_fonts
+from src.utils.helpers import initialize_fonts, load_assets
+from src.board import Board
 
 # Initialize pygame
 pygame.init()
+
+# Initialize mixer for music
+pygame.mixer.init()
+
+# After pygame.init() and mixer initialization
+# Add these variables
+music_muted = False
+mute_button_rect = pygame.Rect(10, 10, 100, 30)  # Position and size of mute button
+
+# Load and start background music
+def initialize_music():
+    global music_muted
+    try:
+        music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'background.mp3')
+        print(f"Loading music from: {music_path}")  # Debug print
+        pygame.mixer.music.load(music_path)
+        pygame.mixer.music.set_volume(0.5)
+        if not music_muted:
+            pygame.mixer.music.play(-1)
+    except Exception as e:
+        print(f"Error loading music: {e}")
+        print(f"Current working directory: {os.getcwd()}")  # Debug print
+
+def toggle_music():
+    global music_muted
+    music_muted = not music_muted
+    if music_muted:
+        pygame.mixer.music.pause()
+    else:
+        pygame.mixer.music.unpause()
+
+# Initialize music
+initialize_music()  # Add this line here
 
 # Get screen resolution
 resolution = [pygame.display.Info().current_w, pygame.display.Info().current_h - 72]
@@ -22,7 +57,8 @@ screen = pygame.display.set_mode((resolution[0], resolution[1]))
 pygame.display.set_caption("Bataille navale")
 
 # Load assets
-background = load_background(resolution)
+assets = load_assets(resolution)
+background = assets["background"]
 fonts = initialize_fonts()
 
 # Initialize game state
@@ -145,22 +181,22 @@ def handle_game():
     if game_state.game_mode == game_state.SINGLE_PLAYER:
         player_x, player_y = draw_grid(screen, game_state.player_board, fonts, reveal=True, 
                                      is_player_grid=True, position="left")
-        comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, reveal=False, 
+        comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, assets, reveal=False, 
                                   is_player_grid=False, position="right")
         
         if game_state.player_turn:
             turn_indicator = fonts["small"].render("Votre tour ←", True, GREEN)
             indicator_x = comp_x + game_state.computer_board.width - turn_indicator.get_width()
-            screen.blit(turn_indicator, (indicator_x - 20, comp_y - 60))
+            screen.blit(turn_indicator, (indicator_x - 20, comp_y - 50))  # Changed from -60 to -50
             
             instructions = fonts["small"].render("Cliquez ici pour attaquer", True, WHITE)
             instructions_x = comp_x + (game_state.computer_board.width // 2) - (instructions.get_width() // 2)
-            screen.blit(instructions, (instructions_x, comp_y - 30))
+            screen.blit(instructions, (instructions_x, comp_y - 25))  # Changed from -30 to -25
             
             if message_timer > 0:
                 message = fonts["small"].render(message_text, True, message_color)
                 screen.blit(message, (resolution[0] // 2 - message.get_width() // 2, 
-                                    max(player_y, comp_y) + game_state.player_board.height + 20))
+                                    max(player_y, comp_y) + game_state.player_board.height + 30))  # Increased from 20 to 30
                 return
             
             for event in events:
@@ -183,10 +219,11 @@ def handle_game():
                             
                             if hit:
                                 effects_manager.create_hit_effect(effect_x, effect_y)
+                                # Adjust position of hit message (moved down by 5px)
                                 effects_manager.create_animated_message(
                                     "TOUCHÉ!", RED, 
                                     comp_x + game_state.computer_board.width // 2,
-                                    comp_y + game_state.computer_board.height + 40, 
+                                    comp_y + game_state.computer_board.height + 45,  # Changed from 40 to 45
                                     duration=90
                                 )
                                 
@@ -204,10 +241,11 @@ def handle_game():
                                     return
                             else:
                                 effects_manager.create_miss_effect(effect_x, effect_y)
+                                # Adjust position of miss message (moved down by 5px)
                                 effects_manager.create_animated_message(
                                     "MANQUÉ!", WHITE, 
                                     comp_x + game_state.computer_board.width // 2,
-                                    comp_y + game_state.computer_board.height + 40, 
+                                    comp_y + game_state.computer_board.height + 45,  # Changed from 40 to 45
                                     duration=90
                                 )
                                 
@@ -221,12 +259,12 @@ def handle_game():
             
             instructions = fonts["small"].render("L'ordinateur attaque ici", True, WHITE)
             instructions_x = player_x + (game_state.player_board.width // 2) - (instructions.get_width() // 2)
-            screen.blit(instructions, (instructions_x, player_y - 30))
+            screen.blit(instructions, (instructions_x, player_y - 25))  # Changed from -30 to -25
             
             if message_timer > 0:
                 message = fonts["small"].render(message_text, True, message_color)
                 screen.blit(message, (resolution[0] // 2 - message.get_width() // 2, 
-                                    max(player_y, comp_y) + game_state.player_board.height + 20))
+                                    max(player_y, comp_y) + game_state.player_board.height + 30))  # Increased from 20 to 30
                 return
             
             if not waiting_for_action:
@@ -256,10 +294,11 @@ def handle_game():
                     
                     if hit:
                         effects_manager.create_hit_effect(effect_x, effect_y)
+                        # Adjust position of hit message (moved down by 5px)
                         effects_manager.create_animated_message(
                             "TOUCHÉ!", RED, 
                             player_x + game_state.player_board.width // 2,
-                            player_y + game_state.player_board.height + 40, 
+                            player_y + game_state.player_board.height + 45,  # Changed from 40 to 45
                             duration=90
                         )
                         
@@ -277,10 +316,11 @@ def handle_game():
                             return
                     else:
                         effects_manager.create_miss_effect(effect_x, effect_y)
+                        # Adjust position of miss message (moved down by 5px)
                         effects_manager.create_animated_message(
                             "MANQUÉ!", WHITE, 
                             player_x + game_state.player_board.width // 2,
-                            player_y + game_state.player_board.height + 40, 
+                            player_y + game_state.player_board.height + 45,  # Changed from 40 to 45
                             duration=90
                         )
                         
@@ -299,7 +339,7 @@ def handle_game():
                 print(f"Erreur pendant le tour de l'ordinateur: {e}")
                 message_text = "Erreur IA - Votre tour"
                 message_color = RED
-                message_timer = 40
+                message_timer = 90
                 game_state.player_turn = True
                 effects_manager.start_turn_transition(resolution, True, GREEN, RED)
     
@@ -428,8 +468,21 @@ while running:
     effects_manager.update_effects(screen)
     effects_manager.update_animated_messages(screen)
     
+    # Draw mute button
+    pygame.draw.rect(screen, WHITE if not music_muted else RED, mute_button_rect)
+    mute_text = fonts["small"].render("🔊 ON" if not music_muted else "🔇 OFF", True, GRAY)
+    text_rect = mute_text.get_rect(center=mute_button_rect.center)
+    screen.blit(mute_text, text_rect)
+
+    # Handle mute button clicks
+    for event in pygame.event.get([pygame.MOUSEBUTTONDOWN]):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if mute_button_rect.collidepoint(event.pos):
+                toggle_music()
+    
     pygame.display.flip()
     clock.tick(FPS)
 
+pygame.mixer.music.stop()  # Stop music before quitting
 pygame.quit()
 sys.exit()

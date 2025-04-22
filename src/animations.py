@@ -71,21 +71,31 @@ class EffectsManager:
     
     def update_effects(self, screen):
         """Update and draw all visual effects"""
+        # Pre-calculate removals to avoid modifying while iterating
+        expired_hit_effects = []
+        expired_miss_effects = []
+        
         # Update hit effects
-        for effect in self.hit_effects[:]:
+        for i, effect in enumerate(self.hit_effects):
             pygame.draw.circle(screen, RED, (effect["x"], effect["y"]), effect["radius"])
             effect["radius"] += 1
             effect["time"] -= 1
             if effect["time"] <= 0:
-                self.hit_effects.remove(effect)
+                expired_hit_effects.append(i)
         
         # Update miss effects
-        for effect in self.miss_effects[:]:
+        for i, effect in enumerate(self.miss_effects):
             pygame.draw.circle(screen, WHITE, (effect["x"], effect["y"]), effect["radius"], 2)
             effect["radius"] += 1
             effect["time"] -= 1
             if effect["time"] <= 0:
-                self.miss_effects.remove(effect)
+                expired_miss_effects.append(i)
+        
+        # Remove expired effects in reverse order to maintain correct indices
+        for i in sorted(expired_hit_effects, reverse=True):
+            self.hit_effects.pop(i)
+        for i in sorted(expired_miss_effects, reverse=True):
+            self.miss_effects.pop(i)
     
     def update_animated_messages(self, screen):
         """Update and draw all animated messages"""
