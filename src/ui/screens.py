@@ -6,9 +6,9 @@ from src.ui.buttons import draw_button
 def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
     """Draw the main menu screen"""
     screen.blit(background, (0, 0))
-    
-    title_text = fonts["large"].render("Bataille Navale", True, WHITE)
-    screen.blit(title_text, (screen.get_width() // 2 - title_text.get_width() // 2, 100))
+    big_bold_font=pygame.font.SysFont(None,100,bold=True)
+    title_text = big_bold_font.render("Bataille Navale", True, WHITE)
+    screen.blit(title_text, (screen.get_width() // 6 - title_text.get_width() // 2, 80))
     
     # Supprimer ou commenter ces lignes pour enlever le message "Veuillez patienter"
     # if button_cooldown > 0:
@@ -20,8 +20,8 @@ def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
     single_player_clicked = draw_button(
         screen,
         "Joueur vs IA",
-        screen.get_width() // 2 - 150,
-        screen.get_height() // 2 - 100,
+        600,
+        screen.get_height() - 60 - 90,
         300,
         80,
         GRAY,
@@ -34,8 +34,8 @@ def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
     draw_button(
         screen,
         "Deux Joueurs",
-        screen.get_width() // 2 - 150,
-        screen.get_height() // 2 + 20,
+        screen.get_width() -800 - 50,
+        screen.get_height() - 60 - 90,
         300,
         80,
         GRAY,
