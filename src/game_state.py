@@ -3,7 +3,7 @@ import os
 from src.utils.constants import SHIPS, GRID_SIZE
 from src.board import Board
 from src.ship import Ship
-from src.ai import ComputerAI, ReinforcementLearningAI
+from src.ai import ReinforcementLearningAI
 
 class GameState:
     """Manages the state of the battleship game"""
@@ -156,6 +156,10 @@ class GameState:
             # If so, pick a random available position instead
             if self.player_board.view[row][col] != '.':
                 import random
+                available_positions = [
+                    (r, c) for r in range(GRID_SIZE) for c in range(GRID_SIZE)
+                    if self.player_board.view[r][c] == '.'
+                ]
                 row, col = random.choice(available_positions)
         else:
             # No AI, just pick a random available position
