@@ -11,14 +11,54 @@ def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
     # Calculate dimensions
     screen_width, screen_height = screen.get_width(), screen.get_height()
     
-    # Title at the top left
-    big_bold_font = pygame.font.SysFont(None, 100, bold=True)
-    title_text = big_bold_font.render("Bataille Navale", True, WHITE)
+    # Render title with shadow using the previous font
+    title_text = "Bataille Navale"
+    big_bold_font = pygame.font.SysFont(None, 100, bold=True)  # This is your previous font
     
-    # Position title at top left with padding
-    title_x = screen_width * 0.1  # 10% from left
-    title_y = screen_height * 0.1  # 10% from top
-    screen.blit(title_text, (title_x, title_y))
+    # Shadow text - slightly offset and in dark color
+    shadow_color = (20, 20, 20)  # Dark grey for shadow
+    shadow_offset = 4  # Pixels to offset the shadow
+    title_shadow = big_bold_font.render(title_text, True, shadow_color)
+    
+    # Main text
+    title = big_bold_font.render(title_text, True, WHITE)
+    
+    # Calculate positions
+    title_x = screen_width * 0.2  # 10% from left
+    title_y = screen_height * 0.9  # 10% from top
+    
+    # Draw shadow first
+    screen.blit(title_shadow, (title_x + shadow_offset, title_y + shadow_offset))
+    # Draw main text on top
+    screen.blit(title, (title_x, title_y))
+    
+    # ...rest of the existing code...draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
+    """Draw the main menu screen with responsive layout"""
+    # Draw background
+    screen.blit(background, (0, 0))
+    
+    # Calculate dimensions
+    screen_width, screen_height = screen.get_width(), screen.get_height()
+    
+    # Render title with shadow
+    title_text = "Bataille Navale"
+
+    # Shadow text - slightly offset and in dark color
+    shadow_color = (20, 20, 20)  # Dark grey for shadow
+    shadow_offset = 4  # Pixels to offset the shadow
+    title_shadow = fonts["large"].render(title_text, True, shadow_color)
+
+    # Main text
+    title = fonts["large"].render(title_text, True, (255, 255, 255))  # White color
+    
+    # Calculate positions
+    title_x = screen_width // 2 - title.get_width() // 2
+    title_y = screen_height // 4
+    
+    # Draw shadow first
+    screen.blit(title_shadow, (title_x + shadow_offset, title_y + shadow_offset))
+    # Draw main text on top
+    screen.blit(title, (title_x, title_y))
     
     # Calculate button dimensions based on screen size
     button_width = min(300, screen_width * 0.25)  # 25% of screen width, max 300px
