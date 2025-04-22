@@ -46,6 +46,9 @@ class GameState:
         
         # Computer AI (used only in single-player)
         self.computer_ai = ReinforcementLearningAI(self.player_board)  # Use RL AI for better gameplay
+
+        self.menu_music = None
+        self.game_music = None
     
     def start_single_player(self):
         """Start single player game"""
