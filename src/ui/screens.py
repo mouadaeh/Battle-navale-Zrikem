@@ -11,14 +11,27 @@ def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
     # Calculate dimensions
     screen_width, screen_height = screen.get_width(), screen.get_height()
     
-    # Title at the top left
+    # Render title with shadow using the previous font
+    title_text = "Bataille Navale"
     big_bold_font = pygame.font.SysFont(None, 100, bold=True)
-    title_text = big_bold_font.render("Bataille Navale", True, WHITE)
     
-    # Position title at top left with padding
-    title_x = screen_width * 0.1  # 10% from left
-    title_y = screen_height * 0.1  # 10% from top
-    screen.blit(title_text, (title_x, title_y))
+    # Shadow text - slightly offset and in dark color
+    shadow_color = (20, 20, 20)  # Dark grey for shadow
+    shadow_offset = 4  # Pixels to offset the shadow
+    title_shadow = big_bold_font.render(title_text, True, shadow_color)
+    
+    # Main text
+    title = big_bold_font.render(title_text, True, WHITE)
+    
+    # Calculate positions - Example positions (adjust these values as needed)
+    title_x = screen_width * 0.1  # 10% from left edge
+    title_y = screen_height * 0.1  # 10% from top edge
+    
+    # Draw shadow first
+    screen.blit(title_shadow, (title_x + shadow_offset, title_y + shadow_offset))
+    # Draw main text on top
+    screen.blit(title, (title_x, title_y))
+    
     
     # Calculate button dimensions based on screen size
     button_width = min(300, screen_width * 0.25)  # 25% of screen width, max 300px
