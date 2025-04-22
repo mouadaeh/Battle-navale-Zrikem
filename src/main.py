@@ -11,7 +11,7 @@ from src.animations import EffectsManager
 from src.ui.screens import draw_main_menu, draw_ship_selection, draw_game_end
 from src.ui.grid import draw_grid
 from src.utils.constants import WHITE, GRAY, GREEN, RED, FPS
-from src.utils.helpers import load_background, initialize_fonts
+from src.utils.helpers import initialize_fonts, load_assets
 from src.board import Board
 
 # Initialize pygame
@@ -23,7 +23,8 @@ screen = pygame.display.set_mode((resolution[0], resolution[1]))
 pygame.display.set_caption("Bataille navale")
 
 # Load assets
-background = load_background(resolution)
+assets = load_assets(resolution)
+background = assets["background"]
 fonts = initialize_fonts()
 
 # Initialize game state
