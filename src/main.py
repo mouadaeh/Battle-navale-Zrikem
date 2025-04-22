@@ -1,6 +1,7 @@
 import pygame
 import sys
 import os
+import pygame.mixer
 
 # Make sure the current directory is in the path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,6 +17,24 @@ from src.board import Board
 
 # Initialize pygame
 pygame.init()
+
+# Initialize mixer for music
+pygame.mixer.init()
+
+# Load and start background music
+def initialize_music():
+    try:
+        music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'background.mp3')
+        print(f"Loading music from: {music_path}")  # Debug print
+        pygame.mixer.music.load(music_path)
+        pygame.mixer.music.set_volume(0.5)
+        pygame.mixer.music.play(-1)
+    except Exception as e:
+        print(f"Error loading music: {e}")
+        print(f"Current working directory: {os.getcwd()}")  # Debug print
+
+# Initialize music
+initialize_music()  # Add this line here
 
 # Get screen resolution
 resolution = [pygame.display.Info().current_w, pygame.display.Info().current_h - 72]
@@ -458,5 +477,6 @@ while running:
     pygame.display.flip()
     clock.tick(FPS)
 
+pygame.mixer.music.stop()  # Stop music before quitting
 pygame.quit()
 sys.exit()
