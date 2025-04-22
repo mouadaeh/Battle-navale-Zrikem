@@ -21,18 +21,35 @@ pygame.init()
 # Initialize mixer for music
 pygame.mixer.init()
 
+# Get screen resolution first
+resolution = [pygame.display.Info().current_w, pygame.display.Info().current_h - 72]
+
 # After pygame.init() and mixer initialization
 # Add these variables
 music_muted = False
 mute_button_rect = pygame.Rect(10, 10, 100, 30)  # Position and size of mute button
 
+# Now initialize game state after resolution is defined
+game_state = GameState(resolution)
+
+# Initialize display
+screen = pygame.display.set_mode((resolution[0], resolution[1]))
+pygame.display.set_caption("Bataille navale")
+
 # Load and start background music
 def initialize_music():
     global music_muted
     try:
-        music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'background.mp3')
-        print(f"Loading music from: {music_path}")  # Debug print
-        pygame.mixer.music.load(music_path)
+        # Load both music files
+        game_music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'background.mp3')
+        menu_music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'menu.mp3')
+        
+        # Store paths for later use
+        game_state.menu_music = menu_music_path
+        game_state.game_music = game_music_path
+        
+        # Start with menu music
+        pygame.mixer.music.load(menu_music_path)
         pygame.mixer.music.set_volume(0.5)
         if not music_muted:
             pygame.mixer.music.play(-1)
@@ -48,21 +65,25 @@ def toggle_music():
     else:
         pygame.mixer.music.unpause()
 
-# Initialize music
-initialize_music()  # Add this line here
+def change_music(music_path):
+    global music_muted
+    try:
+        pygame.mixer.music.fadeout(1000)  # Fade out current music
+        pygame.time.wait(1000)  # Wait for fadeout
+        pygame.mixer.music.load(music_path)
+        pygame.mixer.music.set_volume(0.5)
+        if not music_muted:
+            pygame.mixer.music.play(-1)
+    except Exception as e:
+        print(f"Error changing music: {e}")
 
-# Get screen resolution
-resolution = [pygame.display.Info().current_w, pygame.display.Info().current_h - 72]
-screen = pygame.display.set_mode((resolution[0], resolution[1]))
-pygame.display.set_caption("Bataille navale")
+# Initialize music after game_state is created
+initialize_music()
 
 # Load assets
 assets = load_assets(resolution)
 background = assets["background"]
 fonts = initialize_fonts()
-
-# Initialize game state
-game_state = GameState(resolution)
 
 # Initialize effects manager
 effects_manager = EffectsManager()
@@ -451,14 +472,18 @@ while running:
         previous_state = game_state.state
         recently_changed_state = True
         
-        # Force a longer cooldown when changing to placement state to prevent accidental clicks
+        # Change music based on state
+        if game_state.state == GameState.MENU:
+            change_music(game_state.menu_music)
+        elif game_state.state in [GameState.PLACEMENT, GameState.GAME]:
+            change_music(game_state.game_music)
+        
+        # Force a longer cooldown when changing to placement state
         if game_state.state == GameState.PLACEMENT:
-            button_cooldown = 120  # Longer cooldown (2 seconds at 60 FPS)
-            # Reset player board and ship placement when entering placement mode
-            game_state.player_board = Board()  # Add this line
-            game_state.current_ship_index = 0  # Add this line
+            button_cooldown = 120
+            game_state.player_board = Board()
+            game_state.current_ship_index = 0
         else:
-            # Standard cooldown for other state changes
             button_cooldown = 60
         
         # Reset message when changing states to avoid old messages carrying over
