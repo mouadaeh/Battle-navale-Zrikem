@@ -43,6 +43,9 @@ class GameState:
         
         # Computer AI - Initialize it later when needed
         self.computer_ai = None
+
+        self.menu_music = None
+        self.game_music = None
     
     def start_single_player(self):
         """Start single player game"""
