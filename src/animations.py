@@ -1,4 +1,5 @@
 import pygame
+import random
 from src.utils.constants import RED, WHITE
 
 class AnimatedMessage:
@@ -53,17 +54,17 @@ class AnimatedMessage:
 class EffectsManager:
     """Manages visual effects like hits and misses"""
     def __init__(self):
-        self.hit_effects = []
-        self.miss_effects = []
+        self.effects = []
         self.animated_messages = []
+        self.victory_particles = []
     
     def create_hit_effect(self, x, y):
         """Create a hit effect at the specified position"""
-        self.hit_effects.append({"x": x, "y": y, "radius": 5, "time": 20})
+        self.effects.append({"type": "hit", "x": x, "y": y, "radius": 5, "time": 20})
     
     def create_miss_effect(self, x, y):
         """Create a miss effect at the specified position"""
-        self.miss_effects.append({"x": x, "y": y, "radius": 5, "time": 20})
+        self.effects.append({"type": "miss", "x": x, "y": y, "radius": 5, "time": 20})
     
     def create_animated_message(self, text, color, x, y, duration=60):
         """Create and add an animated message to the list"""
@@ -71,31 +72,22 @@ class EffectsManager:
     
     def update_effects(self, screen):
         """Update and draw all visual effects"""
-        # Pre-calculate removals to avoid modifying while iterating
-        expired_hit_effects = []
-        expired_miss_effects = []
+        expired_effects = []
         
-        # Update hit effects
-        for i, effect in enumerate(self.hit_effects):
-            pygame.draw.circle(screen, RED, (effect["x"], effect["y"]), effect["radius"])
+        # Update effects
+        for i, effect in enumerate(self.effects):
+            if effect["type"] == "hit":
+                pygame.draw.circle(screen, RED, (effect["x"], effect["y"]), effect["radius"])
+            elif effect["type"] == "miss":
+                pygame.draw.circle(screen, WHITE, (effect["x"], effect["y"]), effect["radius"], 2)
             effect["radius"] += 1
             effect["time"] -= 1
             if effect["time"] <= 0:
-                expired_hit_effects.append(i)
-        
-        # Update miss effects
-        for i, effect in enumerate(self.miss_effects):
-            pygame.draw.circle(screen, WHITE, (effect["x"], effect["y"]), effect["radius"], 2)
-            effect["radius"] += 1
-            effect["time"] -= 1
-            if effect["time"] <= 0:
-                expired_miss_effects.append(i)
+                expired_effects.append(i)
         
         # Remove expired effects in reverse order to maintain correct indices
-        for i in sorted(expired_hit_effects, reverse=True):
-            self.hit_effects.pop(i)
-        for i in sorted(expired_miss_effects, reverse=True):
-            self.miss_effects.pop(i)
+        for i in sorted(expired_effects, reverse=True):
+            self.effects.pop(i)
     
     def update_animated_messages(self, screen):
         """Update and draw all animated messages"""
@@ -120,3 +112,32 @@ class EffectsManager:
                                     resolution[0] // 2, 
                                     resolution[1] // 2, 
                                     duration=120)
+    
+    def create_victory_animation(self, screen_width, screen_height):
+        """Create victory particles animation"""
+        colors = [(0, 255, 0), (255, 223, 0), (255, 255, 255)]  # Vert, or, blanc
+        for _ in range(100):  # Nombre de particules
+            particle = {
+                'x': random.randint(0, screen_width),
+                'y': screen_height + 10,
+                'speed': random.uniform(5, 15),
+                'color': random.choice(colors),
+                'size': random.randint(5, 15),
+                'angle': random.uniform(-0.5, 0.5)
+            }
+            self.victory_particles.append(particle)
+    
+    def update_victory_animation(self, screen):
+        """Update and draw victory particles"""
+        for particle in self.victory_particles[:]:
+            particle['y'] -= particle['speed']
+            particle['x'] += particle['angle']
+            
+            # Dessiner la particule
+            pygame.draw.circle(screen, particle['color'], 
+                             (int(particle['x']), int(particle['y'])), 
+                             particle['size'])
+            
+            # Supprimer les particules qui sont sorties de l'écran
+            if particle['y'] < -20:
+                self.victory_particles.remove(particle)

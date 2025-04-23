@@ -46,6 +46,8 @@ class GameState:
 
         self.menu_music = None
         self.game_music = None
+
+        self.victory_animation_started = False
     
     def start_single_player(self):
         """Start single player game"""
@@ -174,3 +176,4 @@ class GameState:
         self.winner = None
         self.player_turn = True
         self.reset_game()
+        self.victory_animation_started = False

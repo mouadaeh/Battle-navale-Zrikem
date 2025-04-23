@@ -1,5 +1,5 @@
 import pygame
-from src.utils.constants import RED, BLACK, WHITE, GREEN, SKY_BLUE, BLUE, WATER_PATH
+from src.utils.constants import RED, BLACK, WHITE, GREEN, SKY_BLUE, BLUE, WATER_PATH,GRAY
 
 def draw_grid(screen, board, fonts, assets=None, reveal=False, is_player_grid=True, position="center"):
     """Draw a game board grid with ships and hits/misses"""
@@ -62,7 +62,7 @@ def draw_grid(screen, board, fonts, assets=None, reveal=False, is_player_grid=Tr
                 pygame.draw.rect(screen, SKY_BLUE, rect)
             
             # Always draw grid lines
-            pygame.draw.rect(screen, BLUE, rect, 1)
+            pygame.draw.rect(screen, GRAY, rect, 1)
             
             # Draw ships, hits and misses
             if board.view[row][col] == 'X':
