@@ -78,8 +78,14 @@ def change_music(music_path):
         pygame.time.wait(1000)  # Wait for fadeout
         pygame.mixer.music.load(music_path)
         pygame.mixer.music.set_volume(0.5)
+        
         if not music_muted:
-            pygame.mixer.music.play(-1)
+            # Play victory music just once if it's the victory music
+            if music_path == game_state.victory_music:
+                pygame.mixer.music.play(0)  # The 0 means play once and stop
+            else:
+                pygame.mixer.music.play(-1)  # -1 means loop indefinitely
+                
     except Exception as e:
         print(f"Error changing music: {e}")
 
