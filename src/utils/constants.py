@@ -18,6 +18,7 @@ BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 
+
 # Grid settings
 CELL_SIZE = 50
 GRID_SIZE = 10
@@ -37,7 +38,7 @@ FPS = 60
 # Background path
 BACKGROUND_PATH = os.path.join("assets", "background", "background1.jpg")
 
-WATER_PATH = os.path.join("assets", "map", "tiled_sea.png")  # Adjust path as needed
+WATER_PATH = os.path.join("assets", "map", "tiled_sea1.png")  # Adjust path as needed
 
 # Timing constants
 BUTTON_COOLDOWN = 60  # Standard cooldown for buttons
