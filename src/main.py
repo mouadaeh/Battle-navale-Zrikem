@@ -29,8 +29,9 @@ resolution = [pygame.display.Info().current_w, pygame.display.Info().current_h -
 music_muted = False
 mute_button_rect = pygame.Rect(10, 10, 100, 30)  # Position and size of mute button
 
-# Add this new global variable
-stored_click = None
+# Add these near your other global variables
+last_click_pos = None
+click_processed = False
 
 # Now initialize game state after resolution is defined
 game_state = GameState(resolution)
@@ -110,7 +111,6 @@ message_timer = 0
 message_text = ""
 message_color = WHITE
 waiting_for_action = False
-stored_click = None  # Add this line
 
 def handle_placement():
     """Handle the ship placement phase"""
@@ -220,7 +220,11 @@ def handle_placement():
 
 def handle_game():
     """Handle the game phase (player turns, computer turns)"""
-    global message_timer, message_text, message_color, waiting_for_action, button_cooldown, stored_click
+    global message_timer, message_text, message_color, waiting_for_action, button_cooldown, last_click_pos, click_processed
+    
+    # Reset click processed flag at the beginning of each frame when in player's turn
+    if game_state.game_mode == GameState.SINGLE_PLAYER and game_state.player_turn and message_timer == 0:
+        click_processed = False
     
     # If we're in a cooldown period (transitioning from placement), show message but don't process game logic
     if button_cooldown > 0:
@@ -233,18 +237,12 @@ def handle_game():
         # Show transition message
         message = fonts["small"].render(message_text, True, message_color)
         screen.blit(message, (resolution[0] // 2 - message.get_width() // 2, 
-                              max(player_y, comp_y) + game_state.player_board.height + 30))  # Increased from 20 to 30
+                              max(player_y, comp_y) + game_state.player_board.height + 30))
         return
     
-    # Get mouse events but don't discard them if we can't process them right now
-    current_events = pygame.event.get([pygame.MOUSEBUTTONDOWN])
-    has_click = False
-    current_click = None
-    
-    for event in current_events:
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            has_click = True
-            current_click = event
+    # Handle game events - check for clicks each frame
+    mouse_pressed = pygame.mouse.get_pressed()
+    mouse_pos = pygame.mouse.get_pos()
     
     # In single player mode
     if game_state.game_mode == GameState.SINGLE_PLAYER:
@@ -256,33 +254,24 @@ def handle_game():
         
         # Player's turn
         if game_state.player_turn:
-            # Adjusted Y position for turn indicator (increased by 10px)
+            # Draw turn indicators and instructions
             turn_indicator = fonts["small"].render("Votre tour", True, GREEN)
             indicator_x = comp_x + game_state.computer_board.width - turn_indicator.get_width()
-            screen.blit(turn_indicator, (indicator_x - 20, comp_y - 50))  # Changed from -60 to -50
+            screen.blit(turn_indicator, (indicator_x - 20, comp_y - 50))
             
-            # Adjusted Y position for instructions (increased by 5px)
             instructions = fonts["small"].render("Cliquez ici pour attaquer", True, WHITE)
             instructions_x = comp_x + (game_state.computer_board.width // 2) - (instructions.get_width() // 2)
-            screen.blit(instructions, (instructions_x, comp_y - 25))  # Changed from -30 to -25
+            screen.blit(instructions, (instructions_x, comp_y - 25))
             
             # If a message is being displayed
             if message_timer > 0:
                 message = fonts["small"].render(message_text, True, message_color)
                 screen.blit(message, (resolution[0] // 2 - message.get_width() // 2, 
-                                    max(player_y, comp_y) + game_state.player_board.height + 30))  # Increased from 20 to 30
-                
-                # Store the click for later instead of returning
-                if has_click:
-                    stored_click = current_click
+                                    max(player_y, comp_y) + game_state.player_board.height + 30))
                 return
             
-            # Process player click events
-            if stored_click or has_click:
-                event = stored_click if stored_click else current_click
-                stored_click = None  # Clear stored click
-                
-                mouse_pos = event.pos
+            # Process player click - check if mouse is pressed and the click hasn't been processed yet
+            if mouse_pressed[0] and not click_processed:  # Left mouse button
                 cell_size = game_state.computer_board.width / len(game_state.computer_board.grid[0])
                 
                 if (comp_x <= mouse_pos[0] < comp_x + game_state.computer_board.width and 
@@ -292,6 +281,9 @@ def handle_game():
                     row = int((mouse_pos[1] - comp_y) // cell_size)
                     
                     if game_state.computer_board.view[row][col] == '.':
+                        # Mark this click as processed to prevent multiple registrations
+                        click_processed = True
+                        
                         # Player attacks
                         hit = game_state.player_attack(row, col)
                         
@@ -301,11 +293,10 @@ def handle_game():
                         
                         if hit:
                             effects_manager.create_hit_effect(effect_x, effect_y)
-                            # Adjust position of hit message (moved down by 5px)
                             effects_manager.create_animated_message(
                                 "TOUCHÉ!", RED, 
                                 comp_x + game_state.computer_board.width // 2,
-                                comp_y + game_state.computer_board.height + 45,  # Changed from 40 to 45
+                                comp_y + game_state.computer_board.height + 45,
                                 duration=90
                             )
                             
@@ -324,16 +315,72 @@ def handle_game():
                                 return
                         else:
                             effects_manager.create_miss_effect(effect_x, effect_y)
-                            # Adjust position of miss message (moved down by 5px)
                             effects_manager.create_animated_message(
                                 "MANQUÉ!", WHITE, 
                                 comp_x + game_state.computer_board.width // 2,
-                                comp_y + game_state.computer_board.height + 45,  # Changed from 40 to 45
+                                comp_y + game_state.computer_board.height + 45,
                                 duration=90
                             )
                             
                             message_timer = 90
                             game_state.player_turn = False
+            
+            # Also check for pygame events to ensure we don't miss any clicks
+            for event in pygame.event.get([pygame.MOUSEBUTTONDOWN]):
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not click_processed:
+                    mouse_pos = event.pos
+                    
+                    cell_size = game_state.computer_board.width / len(game_state.computer_board.grid[0])
+                    
+                    if (comp_x <= mouse_pos[0] < comp_x + game_state.computer_board.width and 
+                        comp_y <= mouse_pos[1] < comp_y + game_state.computer_board.height):
+                        
+                        col = int((mouse_pos[0] - comp_x) // cell_size)
+                        row = int((mouse_pos[1] - comp_y) // cell_size)
+                        
+                        if game_state.computer_board.view[row][col] == '.':
+                            click_processed = True
+                            
+                            # Player attacks
+                            hit = game_state.player_attack(row, col)
+                            
+                            # Add visual effect
+                            effect_x = comp_x + col * cell_size + cell_size / 2
+                            effect_y = comp_y + row * cell_size + cell_size / 2
+                            
+                            if hit:
+                                effects_manager.create_hit_effect(effect_x, effect_y)
+                                effects_manager.create_animated_message(
+                                    "TOUCHÉ!", RED, 
+                                    comp_x + game_state.computer_board.width // 2,
+                                    comp_y + game_state.computer_board.height + 45,
+                                    duration=90
+                                )
+                                
+                                message_text = "Vous rejouez"
+                                message_color = WHITE
+                                message_timer = 75
+                                
+                                # Check game end
+                                if game_state.winner is not None:
+                                    effects_manager.create_animated_message(
+                                        "VICTOIRE!", GREEN, 
+                                        resolution[0] // 2, 
+                                        resolution[1] // 2, 
+                                        duration=180
+                                    )
+                                    return
+                            else:
+                                effects_manager.create_miss_effect(effect_x, effect_y)
+                                effects_manager.create_animated_message(
+                                    "MANQUÉ!", WHITE, 
+                                    comp_x + game_state.computer_board.width // 2,
+                                    comp_y + game_state.computer_board.height + 45,
+                                    duration=90
+                                )
+                                
+                                message_timer = 90
+                                game_state.player_turn = False
         
         # Computer's turn
         else:
