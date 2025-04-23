@@ -44,13 +44,15 @@ pygame.display.set_caption("Bataille navale")
 def initialize_music():
     global music_muted
     try:
-        # Load both music files
+        # Load all music files
         game_music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'background.mp3')
         menu_music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'menu.mp3')
+        victory_music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'Victory-music.mp3')
         
         # Store paths for later use
         game_state.menu_music = menu_music_path
         game_state.game_music = game_music_path
+        game_state.victory_music = victory_music_path
         
         # Start with menu music
         pygame.mixer.music.load(menu_music_path)
@@ -314,6 +316,8 @@ def handle_game():
                                     duration=180
                                 )
                                 game_state.victory_animation_started = True
+                                # Play victory music
+                                change_music(game_state.victory_music)
                                 return
                         else:
                             effects_manager.create_miss_effect(effect_x, effect_y)
@@ -373,6 +377,8 @@ def handle_game():
                                         duration=180
                                     )
                                     game_state.victory_animation_started = True
+                                    # Play victory music
+                                    change_music(game_state.victory_music)
                                     return
                             else:
                                 effects_manager.create_miss_effect(effect_x, effect_y)
