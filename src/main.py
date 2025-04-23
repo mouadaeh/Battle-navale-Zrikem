@@ -29,6 +29,9 @@ resolution = [pygame.display.Info().current_w, pygame.display.Info().current_h -
 music_muted = False
 mute_button_rect = pygame.Rect(10, 10, 100, 30)  # Position and size of mute button
 
+# Add this new global variable
+stored_click = None
+
 # Now initialize game state after resolution is defined
 game_state = GameState(resolution)
 
@@ -94,6 +97,7 @@ message_timer = 0
 message_text = ""
 message_color = WHITE
 waiting_for_action = False
+stored_click = None  # Add this line
 
 def handle_placement():
     """Handle the ship placement phase"""
@@ -248,7 +252,7 @@ def handle_placement():
 
 def handle_game():
     """Handle the game phase (player turns, computer turns)"""
-    global message_timer, message_text, message_color, waiting_for_action, button_cooldown
+    global message_timer, message_text, message_color, waiting_for_action, button_cooldown, stored_click
     
     # If we're in a cooldown period (transitioning from placement), show message but don't process game logic
     if button_cooldown > 0:
@@ -264,8 +268,15 @@ def handle_game():
                               max(player_y, comp_y) + game_state.player_board.height + 30))  # Increased from 20 to 30
         return
     
-    # Handle game events
-    events = pygame.event.get([pygame.MOUSEBUTTONDOWN])
+    # Get mouse events but don't discard them if we can't process them right now
+    current_events = pygame.event.get([pygame.MOUSEBUTTONDOWN])
+    has_click = False
+    current_click = None
+    
+    for event in current_events:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            has_click = True
+            current_click = event
     
     # In single player mode
     if game_state.game_mode == GameState.SINGLE_PLAYER:
@@ -292,70 +303,75 @@ def handle_game():
                 message = fonts["small"].render(message_text, True, message_color)
                 screen.blit(message, (resolution[0] // 2 - message.get_width() // 2, 
                                     max(player_y, comp_y) + game_state.player_board.height + 30))  # Increased from 20 to 30
+                
+                # Store the click for later instead of returning
+                if has_click:
+                    stored_click = current_click
                 return
             
             # Process player click events
-            for event in events:
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    mouse_pos = event.pos
+            if stored_click or has_click:
+                event = stored_click if stored_click else current_click
+                stored_click = None  # Clear stored click
+                
+                mouse_pos = event.pos
+                cell_size = game_state.computer_board.width / len(game_state.computer_board.grid[0])
+                
+                if (comp_x <= mouse_pos[0] < comp_x + game_state.computer_board.width and 
+                    comp_y <= mouse_pos[1] < comp_y + game_state.computer_board.height):
                     
-                    cell_size = game_state.computer_board.width / len(game_state.computer_board.grid[0])
+                    col = int((mouse_pos[0] - comp_x) // cell_size)
+                    row = int((mouse_pos[1] - comp_y) // cell_size)
                     
-                    if (comp_x <= mouse_pos[0] < comp_x + game_state.computer_board.width and 
-                        comp_y <= mouse_pos[1] < comp_y + game_state.computer_board.height):
+                    if game_state.computer_board.view[row][col] == '.':
+                        # Player attacks
+                        hit = game_state.player_attack(row, col)
                         
-                        col = int((mouse_pos[0] - comp_x) // cell_size)
-                        row = int((mouse_pos[1] - comp_y) // cell_size)
+                        # Add visual effect
+                        effect_x = comp_x + col * cell_size + cell_size / 2
+                        effect_y = comp_y + row * cell_size + cell_size / 2
                         
-                        if game_state.computer_board.view[row][col] == '.':
-                            # Player attacks
-                            hit = game_state.player_attack(row, col)
+                        if hit:
+                            effects_manager.create_hit_effect(effect_x, effect_y)
+                            # Adjust position of hit message (moved down by 5px)
+                            effects_manager.create_animated_message(
+                                "TOUCHÉ!", RED, 
+                                comp_x + game_state.computer_board.width // 2,
+                                comp_y + game_state.computer_board.height + 45,  # Changed from 40 to 45
+                                duration=90
+                            )
                             
-                            # Add visual effect
-                            effect_x = comp_x + col * cell_size + cell_size / 2
-                            effect_y = comp_y + row * cell_size + cell_size / 2
+                            message_text = "Vous rejouez"
+                            message_color = WHITE
+                            message_timer = 75
                             
-                            if hit:
-                                effects_manager.create_hit_effect(effect_x, effect_y)
-                                # Adjust position of hit message (moved down by 5px)
+                            # Check game end
+                            if game_state.winner is not None:
                                 effects_manager.create_animated_message(
-                                    "TOUCHÉ!", RED, 
-                                    comp_x + game_state.computer_board.width // 2,
-                                    comp_y + game_state.computer_board.height + 45,  # Changed from 40 to 45
-                                    duration=90
+                                    "VICTOIRE!", GREEN, 
+                                    resolution[0] // 2, 
+                                    resolution[1] // 2, 
+                                    duration=180
                                 )
-                                
-                                message_text = "Vous rejouez"
-                                message_color = WHITE
-                                message_timer = 75
-                                
-                                # Check game end
-                                if game_state.winner is not None:
-                                    effects_manager.create_animated_message(
-                                        "VICTOIRE!", GREEN, 
-                                        resolution[0] // 2, 
-                                        resolution[1] // 2, 
-                                        duration=180
-                                    )
-                                    return
-                            else:
-                                effects_manager.create_miss_effect(effect_x, effect_y)
-                                # Adjust position of miss message (moved down by 5px)
-                                effects_manager.create_animated_message(
-                                    "MANQUÉ!", WHITE, 
-                                    comp_x + game_state.computer_board.width // 2,
-                                    comp_y + game_state.computer_board.height + 45,  # Changed from 40 to 45
-                                    duration=90
-                                )
-                                
-                                message_timer = 90
-                                game_state.player_turn = False
+                                return
+                        else:
+                            effects_manager.create_miss_effect(effect_x, effect_y)
+                            # Adjust position of miss message (moved down by 5px)
+                            effects_manager.create_animated_message(
+                                "MANQUÉ!", WHITE, 
+                                comp_x + game_state.computer_board.width // 2,
+                                comp_y + game_state.computer_board.height + 45,  # Changed from 40 to 45
+                                duration=90
+                            )
+                            
+                            message_timer = 90
+                            game_state.player_turn = False
         
         # Computer's turn
         else:
             # Adjusted Y position for turn indicator (increased by 10px)
             turn_indicator = fonts["small"].render("Tour de l'ordinateur", True, RED)
-            screen.blit(turn_indicator, (player_x - 20, player_y - 50))  # Changed from -60 to -50
+            screen.blit(turn_indicator, (player_x + 50, player_y - 50))  # Changed from -60 to -50
             
             # Adjusted Y position for instructions (increased by 5px)
             instructions = fonts["small"].render("L'ordinateur attaque ici", True, WHITE)
