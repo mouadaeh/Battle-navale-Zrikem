@@ -366,13 +366,6 @@ def handle_game():
                                 # Clear fire animations before starting victory animation
                                 effects_manager.clear_fire_animations()
                                 effects_manager.create_victory_animation(resolution[0], resolution[1])
-                                effects_manager.create_animated_message(
-                                    "VICTOIRE!" if game_state.winner == "player" else "DÉFAITE!", 
-                                    GREEN if game_state.winner == "player" else RED, 
-                                    resolution[0] // 2, 
-                                    resolution[1] // 2, 
-                                    duration=180
-                                )
                                 game_state.victory_animation_started = True
                                 # Play victory music
                                 change_music(game_state.victory_music)
@@ -430,13 +423,6 @@ def handle_game():
                                     # Clear fire animations before starting victory animation
                                     effects_manager.clear_fire_animations()
                                     effects_manager.create_victory_animation(resolution[0], resolution[1])
-                                    effects_manager.create_animated_message(
-                                        "VICTOIRE!" if game_state.winner == "player" else "DÉFAITE!", 
-                                        GREEN if game_state.winner == "player" else RED, 
-                                        resolution[0] // 2, 
-                                        resolution[1] // 2, 
-                                        duration=180
-                                    )
                                     game_state.victory_animation_started = True
                                     # Play victory music
                                     change_music(game_state.victory_music)
