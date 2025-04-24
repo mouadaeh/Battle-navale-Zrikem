@@ -1,4 +1,5 @@
 import random
+import pygame
 import os
 from src.utils.constants import SHIPS, GRID_SIZE
 from src.board import Board
@@ -34,6 +35,7 @@ class GameState:
         self.current_ship_index = 0
         self.horizontal = True
         self.rotation_cooldown = 0
+        self.placed_ships = []  # Liste des bateaux placés
         
         # Game turn
         self.player_turn = True
@@ -177,3 +179,10 @@ class GameState:
         self.player_turn = True
         self.reset_game()
         self.victory_animation_started = False
+
+    def handle_cell_hit(self, cell_value, row, col, cell_size, cell_x, cell_y, screen, boom_image):
+        """Handle the event when a cell is hit"""
+        if cell_value == 'X':  # Case touchée
+            print(f"Case touchée à la position ({row}, {col})")
+            scaled_boom = pygame.transform.scale(boom_image, (int(cell_size), int(cell_size)))
+            screen.blit(scaled_boom, (cell_x, cell_y))

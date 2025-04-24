@@ -86,6 +86,7 @@ initialize_music()
 
 # Load assets
 assets = load_assets(resolution)
+assets["boom"] = pygame.image.load(os.path.join(os.path.dirname(__file__), '..', 'assets', 'boom.png')).convert_alpha()
 background = assets["background"]
 fonts = initialize_fonts()
 
@@ -101,6 +102,9 @@ def load_ship_images():
 
 # Charger les images des bateaux après avoir chargé les assets
 ship_images = load_ship_images()
+
+# Charger l'image "boom.png"
+boom_image = pygame.image.load(os.path.join(os.path.dirname(__file__), '..', 'assets', 'boom.png')).convert_alpha()
 
 # Initialize effects manager
 effects_manager = EffectsManager()
@@ -123,6 +127,18 @@ def handle_placement():
     player_x, player_y = draw_grid(screen, game_state.player_board, fonts, assets, reveal=True, 
                                   is_player_grid=True, position="center")
     
+    # Draw already placed ships
+    cell_size = game_state.player_board.width / len(game_state.player_board.grid[0])
+    for ship in game_state.placed_ships:
+        ship_image = ship_images.get(ship['name'].lower())
+        if ship_image:
+            scaled_image = pygame.transform.scale(ship_image, (int(cell_size * ship['size']), int(cell_size)))
+            if ship['horizontal']:
+                screen.blit(scaled_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
+            else:
+                rotated_image = pygame.transform.rotate(scaled_image, 90)
+                screen.blit(rotated_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
+    
     # Set a cooldown when entering placement state to prevent accidental clicks
     if button_cooldown > 0:
         # Show an instruction message during cooldown
@@ -141,7 +157,6 @@ def handle_placement():
     
     # Get mouse position for preview
     mouse_pos = pygame.mouse.get_pos()
-    cell_size = game_state.player_board.width / len(game_state.player_board.grid[0])
     
     # Draw ship preview at mouse position
     if current_ship and player_x <= mouse_pos[0] < player_x + game_state.player_board.width and player_y <= mouse_pos[1] < player_y + game_state.player_board.height:
@@ -186,16 +201,13 @@ def handle_placement():
                 # Draw a semi-transparent red overlay for invalid placement
                 overlay = pygame.Surface((scaled_image.get_width(), scaled_image.get_height()), pygame.SRCALPHA)
                 overlay.fill((255, 0, 0, 128))  # Semi-transparent red
-
                 if game_state.horizontal:
-                    # Dessiner l'overlay rouge pour un bateau horizontal
                     screen.blit(scaled_image, (player_x + col * cell_size, player_y + row * cell_size))
                     screen.blit(overlay, (player_x + col * cell_size, player_y + row * cell_size))
                 else:
-                    # Dessiner l'overlay rouge pour un bateau vertical
                     rotated_image = pygame.transform.rotate(scaled_image, 90)
                     screen.blit(rotated_image, (player_x + col * cell_size, player_y + row * cell_size))
-                    overlay = pygame.transform.rotate(overlay, 90)  # Faire pivoter l'overlay rouge
+                    overlay = pygame.transform.rotate(overlay, 90)
                     screen.blit(overlay, (player_x + col * cell_size, player_y + row * cell_size))
     
     # Handle mouse clicks for placement
@@ -214,6 +226,13 @@ def handle_placement():
                 if game_state.current_ship_index < len(game_state.ships):
                     ship = game_state.ships[game_state.current_ship_index]
                     if game_state.place_player_ship(row, col, ship['size'], game_state.horizontal):
+                        game_state.placed_ships.append({
+                            'name': ship['name'],
+                            'size': ship['size'],
+                            'row': row,
+                            'col': col,
+                            'horizontal': game_state.horizontal
+                        })
                         game_state.current_ship_index += 1
                         if game_state.current_ship_index >= len(game_state.ships):
                             game_state.state = GameState.GAME
@@ -222,18 +241,46 @@ def handle_game():
     """Handle the game phase (player turns, computer turns)"""
     global message_timer, message_text, message_color, waiting_for_action, button_cooldown, last_click_pos, click_processed
     
+    # Always draw the player's grid with placed ships
+    player_x, player_y = draw_grid(screen, game_state.player_board, fonts, assets, reveal=True, 
+                                   is_player_grid=True, position="left")
+    
+    # Draw already placed ships on the player's grid
+    cell_size = game_state.player_board.width / len(game_state.player_board.grid[0])
+    for ship in game_state.placed_ships:
+        ship_image = ship_images.get(ship['name'].lower())
+        if ship_image:
+            scaled_image = pygame.transform.scale(ship_image, (int(cell_size * ship['size']), int(cell_size)))
+            if ship['horizontal']:
+                screen.blit(scaled_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
+            else:
+                rotated_image = pygame.transform.rotate(scaled_image, 90)
+                screen.blit(rotated_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
+    
+    # Draw the computer's grid
+    comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, assets, reveal=False, 
+                               is_player_grid=False, position="right")
+    
+    # Render hit and miss cells
+    for row in range(len(game_state.player_board.grid)):
+        for col in range(len(game_state.player_board.grid[row])):
+            cell_value = game_state.player_board.view[row][col]
+            cell_x = player_x + col * cell_size
+            cell_y = player_y + row * cell_size
+
+            if cell_value == 'X':  # Case touchée
+                # Afficher l'image "boom.png" sur la case touchée
+                scaled_boom = pygame.transform.scale(boom_image, (int(cell_size), int(cell_size)))
+                screen.blit(scaled_boom, (cell_x, cell_y))
+            elif cell_value == 'O':  # Case manquée
+                pygame.draw.circle(screen, WHITE, (int(cell_x + cell_size / 2), int(cell_y + cell_size / 2)), int(cell_size / 4))
+    
     # Reset click processed flag at the beginning of each frame when in player's turn
     if game_state.game_mode == GameState.SINGLE_PLAYER and game_state.player_turn and message_timer == 0:
         click_processed = False
     
     # If we're in a cooldown period (transitioning from placement), show message but don't process game logic
     if button_cooldown > 0:
-        # Draw both grids side by side
-        player_x, player_y = draw_grid(screen, game_state.player_board, fonts, assets, reveal=True, 
-                                     is_player_grid=True, position="left")
-        comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, assets, reveal=False, 
-                                  is_player_grid=False, position="right")
-        
         # Show transition message
         message = fonts["small"].render(message_text, True, message_color)
         screen.blit(message, (resolution[0] // 2 - message.get_width() // 2, 
@@ -246,12 +293,6 @@ def handle_game():
     
     # In single player mode
     if game_state.game_mode == GameState.SINGLE_PLAYER:
-        # Always draw both grids
-        player_x, player_y = draw_grid(screen, game_state.player_board, fonts, assets, reveal=True, 
-                                     is_player_grid=True, position="left")
-        comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, assets, reveal=False, 
-                                  is_player_grid=False, position="right")
-        
         # Player's turn
         if game_state.player_turn:
             # Draw turn indicators and instructions

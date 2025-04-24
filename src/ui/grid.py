@@ -1,7 +1,7 @@
 import pygame
-from src.utils.constants import RED, BLACK, WHITE, GREEN, SKY_BLUE, BLUE, WATER_PATH,GRAY
+from src.utils.constants import RED, BLACK, WHITE, GREEN, SKY_BLUE, BLUE, WATER_PATH, GRAY
 
-def draw_grid(screen, board, fonts, assets=None, reveal=False, is_player_grid=True, position="center"):
+def draw_grid(screen, board, fonts, assets, reveal=False, is_player_grid=False, position="center"):
     """Draw a game board grid with ships and hits/misses"""
     # Setup - Move title higher up
     title = fonts["large"].render("Bataille Navale", True, BLUE)
@@ -57,22 +57,28 @@ def draw_grid(screen, board, fonts, assets=None, reveal=False, is_player_grid=Tr
                 cell_height,
             )
             
+            cell_x = start_x + col * cell_width
+            cell_y = start_y + row * cell_height
+            
+            # Vérifiez si la cellule contient un bateau
+            if board.grid[row][col] == 'S' and is_player_grid:
+                # Ne pas dessiner de fond vert pour les cellules contenant des bateaux
+                continue
+            
+            # Dessiner les lignes de la grille
+            pygame.draw.rect(screen, GRAY, (cell_x, cell_y, cell_width, cell_height), 1)
+            
             # Only draw sky blue background if we don't have a water image
             if not has_water_image:
                 pygame.draw.rect(screen, SKY_BLUE, rect)
             
-            # Always draw grid lines
-            pygame.draw.rect(screen, GRAY, rect, 1)
-            
             # Draw ships, hits and misses
             if board.view[row][col] == 'X':
-                # Hit marker
-                pygame.draw.line(screen, RED, 
-                               (rect.left + 5, rect.top + 5), 
-                               (rect.right - 5, rect.bottom - 5), 3)
-                pygame.draw.line(screen, RED, 
-                               (rect.right - 5, rect.top + 5), 
-                               (rect.left + 5, rect.bottom - 5), 3)
+                # Hit marker - Display boom.png instead of a red cross
+                if "boom" in assets:
+                    boom_image = assets["boom"]
+                    scaled_boom = pygame.transform.scale(boom_image, (int(cell_width), int(cell_height)))
+                    screen.blit(scaled_boom, (cell_x, cell_y))
             elif board.view[row][col] == 'O':
                 # Miss marker
                 pygame.draw.circle(screen, WHITE, rect.center, min(rect.width, rect.height) // 3, 2)
