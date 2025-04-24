@@ -44,13 +44,15 @@ pygame.display.set_caption("Bataille navale")
 def initialize_music():
     global music_muted
     try:
-        # Load both music files
+        # Load all music files
         game_music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'background.mp3')
         menu_music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'menu.mp3')
+        victory_music_path = os.path.join(os.path.dirname(__file__), '..', 'SFX', 'Victory-music.mp3')
         
         # Store paths for later use
         game_state.menu_music = menu_music_path
         game_state.game_music = game_music_path
+        game_state.victory_music = victory_music_path
         
         # Start with menu music
         pygame.mixer.music.load(menu_music_path)
@@ -76,8 +78,14 @@ def change_music(music_path):
         pygame.time.wait(1000)  # Wait for fadeout
         pygame.mixer.music.load(music_path)
         pygame.mixer.music.set_volume(0.5)
+        
         if not music_muted:
-            pygame.mixer.music.play(-1)
+            # Play victory music just once if it's the victory music
+            if music_path == game_state.victory_music:
+                pygame.mixer.music.play(0)  # The 0 means play once and stop
+            else:
+                pygame.mixer.music.play(-1)  # -1 means loop indefinitely
+                
     except Exception as e:
         print(f"Error changing music: {e}")
 
@@ -355,6 +363,8 @@ def handle_game():
                                     duration=180
                                 )
                                 game_state.victory_animation_started = True
+                                # Play victory music
+                                change_music(game_state.victory_music)
                                 return
                         else:
                             effects_manager.create_miss_effect(effect_x, effect_y)
@@ -414,6 +424,8 @@ def handle_game():
                                         duration=180
                                     )
                                     game_state.victory_animation_started = True
+                                    # Play victory music
+                                    change_music(game_state.victory_music)
                                     return
                             else:
                                 effects_manager.create_miss_effect(effect_x, effect_y)
