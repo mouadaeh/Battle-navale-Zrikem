@@ -163,26 +163,32 @@ class GameState:
         return row, col, hit
     
     def restart_game(self):
-        """Restart the game"""
-        # Save AI model before resetting if we were in single player mode
-        if self.game_mode == self.SINGLE_PLAYER and self.computer_ai:
-            try:
-                os.makedirs("models", exist_ok=True)  # Create directory if it doesn't exist
-                self.computer_ai.save_model()
-                print("AI model saved successfully")
-            except Exception as e:
-                print(f"Could not save AI model: {e}")
-        
-        self.state = self.MENU
-        self.game_mode = None
-        self.winner = None
+        """Reset the game to start a new one"""
+        self.state = GameState.MENU
+        self.player_board = Board()
+        self.computer_board = Board()
+        self.current_ship_index = 0
         self.player_turn = True
-        self.reset_game()
+        self.winner = None
         self.victory_animation_started = False
-
+        self.placed_ships = []  # Reset placed ships
+        self.horizontal = True  # Reset ship orientation
+        
+        # Reset ships to be placed
+        self.ships = []
+        for ship_config in SHIPS:
+            self.ships.append({"name": ship_config["name"], "size": ship_config["size"]})
+    
     def handle_cell_hit(self, cell_value, row, col, cell_size, cell_x, cell_y, screen, boom_image):
         """Handle the event when a cell is hit"""
         if cell_value == 'X':  # Case touchée
             print(f"Case touchée à la position ({row}, {col})")
             scaled_boom = pygame.transform.scale(boom_image, (int(cell_size), int(cell_size)))
             screen.blit(scaled_boom, (cell_x, cell_y))
+
+    # Add or update the set_winner method
+
+    def set_winner(self, winner):
+        """Set the winner and end the game"""
+        self.winner = winner
+        self.state = GameState.END

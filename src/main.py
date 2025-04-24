@@ -262,7 +262,7 @@ def handle_game():
                 screen.blit(rotated_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
     
     # Draw the computer's grid
-    comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, assets, reveal=False, 
+    comp_x, comp_y = draw_grid(screen, game_state.computer_board, fonts, assets, reveal=True, 
                                is_player_grid=False, position="right")
     
     # Render hit and miss cells
@@ -363,9 +363,12 @@ def handle_game():
                             
                             # Check game end
                             if game_state.winner is not None and not game_state.victory_animation_started:
+                                # Clear fire animations before starting victory animation
+                                effects_manager.clear_fire_animations()
                                 effects_manager.create_victory_animation(resolution[0], resolution[1])
                                 effects_manager.create_animated_message(
-                                    "VICTOIRE!", GREEN, 
+                                    "VICTOIRE!" if game_state.winner == "player" else "DÉFAITE!", 
+                                    GREEN if game_state.winner == "player" else RED, 
                                     resolution[0] // 2, 
                                     resolution[1] // 2, 
                                     duration=180
@@ -424,9 +427,12 @@ def handle_game():
                                 
                                 # Check game end
                                 if game_state.winner is not None and not game_state.victory_animation_started:
+                                    # Clear fire animations before starting victory animation
+                                    effects_manager.clear_fire_animations()
                                     effects_manager.create_victory_animation(resolution[0], resolution[1])
                                     effects_manager.create_animated_message(
-                                        "VICTOIRE!", GREEN, 
+                                        "VICTOIRE!" if game_state.winner == "player" else "DÉFAITE!", 
+                                        GREEN if game_state.winner == "player" else RED, 
                                         resolution[0] // 2, 
                                         resolution[1] // 2, 
                                         duration=180
@@ -570,6 +576,10 @@ while running:
     if previous_state != game_state.state:
         previous_state = game_state.state
         recently_changed_state = True
+        
+        # Clear fire animations when game ends or restarts
+        if game_state.state == GameState.END or (game_state.state == GameState.MENU and previous_state == GameState.END):
+            effects_manager.clear_fire_animations()
         
         # Change music based on state
         if game_state.state == GameState.MENU:

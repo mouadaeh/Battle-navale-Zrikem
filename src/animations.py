@@ -190,3 +190,9 @@ class EffectsManager:
             # Supprimer les particules qui sont sorties de l'écran
             if particle['y'] < -20:
                 self.victory_particles.remove(particle)
+                
+    # Add this method to the EffectsManager class
+
+    def clear_fire_animations(self):
+        """Clear all active fire animations"""
+        self.fire_animations = []
