@@ -74,11 +74,7 @@ def draw_grid(screen, board, fonts, assets, reveal=False, is_player_grid=False, 
             
             # Draw ships, hits and misses
             if board.view[row][col] == 'X':
-                # Hit marker - Display boom.png instead of a red cross
-                if "boom" in assets:
-                    boom_image = assets["boom"]
-                    scaled_boom = pygame.transform.scale(boom_image, (int(cell_width), int(cell_height)))
-                    screen.blit(scaled_boom, (cell_x, cell_y))
+                pass  # We'll handle hit visualization with the fire animation
             elif board.view[row][col] == 'O':
                 # Miss marker
                 pygame.draw.circle(screen, WHITE, rect.center, min(rect.width, rect.height) // 3, 2)

@@ -94,7 +94,6 @@ initialize_music()
 
 # Load assets
 assets = load_assets(resolution)
-assets["boom"] = pygame.image.load(os.path.join(os.path.dirname(__file__), '..', 'assets', 'boom.png')).convert_alpha()
 background = assets["background"]
 fonts = initialize_fonts()
 
@@ -110,9 +109,6 @@ def load_ship_images():
 
 # Charger les images des bateaux après avoir chargé les assets
 ship_images = load_ship_images()
-
-# Charger l'image "boom.png"
-boom_image = pygame.image.load(os.path.join(os.path.dirname(__file__), '..', 'assets', 'boom.png')).convert_alpha()
 
 # Initialize effects manager
 effects_manager = EffectsManager()
@@ -277,12 +273,24 @@ def handle_game():
             cell_y = player_y + row * cell_size
 
             if cell_value == 'X':  # Case touchée
-                # Afficher l'image "boom.png" sur la case touchée
-                scaled_boom = pygame.transform.scale(boom_image, (int(cell_size), int(cell_size)))
-                screen.blit(scaled_boom, (cell_x, cell_y))
+                # Create fire animation if one doesn't already exist at this position
+                if not any(fire.x == cell_x and fire.y == cell_y for fire in effects_manager.fire_animations):
+                    effects_manager.create_fire_animation(cell_x, cell_y, int(cell_size))
             elif cell_value == 'O':  # Case manquée
                 pygame.draw.circle(screen, WHITE, (int(cell_x + cell_size / 2), int(cell_y + cell_size / 2)), int(cell_size / 4))
     
+    # Add this to render hits on computer's board too:
+    for row in range(len(game_state.computer_board.grid)):
+        for col in range(len(game_state.computer_board.grid[row])):
+            cell_value = game_state.computer_board.view[row][col]
+            cell_x = comp_x + col * cell_size
+            cell_y = comp_y + row * cell_size
+            
+            if cell_value == 'X':  # Hit cell
+                # Create fire animation if one doesn't already exist at this position
+                if not any(fire.x == cell_x and fire.y == cell_y for fire in effects_manager.fire_animations):
+                    effects_manager.create_fire_animation(cell_x, cell_y, int(cell_size))
+
     # Reset click processed flag at the beginning of each frame when in player's turn
     if game_state.game_mode == GameState.SINGLE_PLAYER and game_state.player_turn and message_timer == 0:
         click_processed = False

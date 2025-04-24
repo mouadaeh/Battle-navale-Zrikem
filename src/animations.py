@@ -1,6 +1,45 @@
 import pygame
 import random
+import os
 from src.utils.constants import RED, WHITE
+
+class FireAnimation:
+    """Class for animated fire effects when ships are hit"""
+    def __init__(self, x, y, cell_size):
+        self.x = x
+        self.y = y
+        self.cell_size = cell_size
+        self.frame = 0
+        self.max_frames = 4
+        self.animation_speed = 5  # Lower is faster
+        self.counter = 0
+        self.active = True
+        self.frames = []
+        
+        # Load all fire animation frames
+        for i in range(1, self.max_frames + 1):
+            try:
+                img = pygame.image.load(os.path.join("assets", "fire", f"frame{i}.png"))
+                img = pygame.transform.scale(img, (int(cell_size), int(cell_size)))
+                self.frames.append(img)
+            except Exception as e:
+                print(f"Error loading fire frame {i}: {e}")
+                # Create a fallback colored rectangle if image loading fails
+                surf = pygame.Surface((cell_size, cell_size))
+                surf.fill(RED)
+                self.frames.append(surf)
+    
+    def update(self):
+        """Update the animation frame"""
+        self.counter += 1
+        if self.counter >= self.animation_speed:
+            self.counter = 0
+            self.frame = (self.frame + 1) % self.max_frames
+    
+    def draw(self, screen):
+        """Draw the current frame of the animation"""
+        if self.active and self.frames:
+            screen.blit(self.frames[self.frame], (self.x, self.y))
 
 class AnimatedMessage:
     """Class for animated floating messages"""
@@ -57,6 +96,7 @@ class EffectsManager:
         self.effects = []
         self.animated_messages = []
         self.victory_particles = []
+        self.fire_animations = []  # Add this line to store fire animations
     
     def create_hit_effect(self, x, y):
         """Create a hit effect at the specified position"""
@@ -70,6 +110,10 @@ class EffectsManager:
         """Create and add an animated message to the list"""
         self.animated_messages.append((AnimatedMessage(text, color, duration), x, y))
     
+    def create_fire_animation(self, x, y, cell_size):
+        """Create a new fire animation at the specified grid position"""
+        self.fire_animations.append(FireAnimation(x, y, cell_size))
+        
     def update_effects(self, screen):
         """Update and draw all visual effects"""
         expired_effects = []
@@ -88,6 +132,11 @@ class EffectsManager:
         # Remove expired effects in reverse order to maintain correct indices
         for i in sorted(expired_effects, reverse=True):
             self.effects.pop(i)
+            
+        # Update and draw fire animations
+        for fire in self.fire_animations:
+            fire.update()
+            fire.draw(screen)
     
     def update_animated_messages(self, screen):
         """Update and draw all animated messages"""
