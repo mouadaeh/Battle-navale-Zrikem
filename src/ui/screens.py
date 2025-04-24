@@ -69,20 +69,6 @@ def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
         fonts["button"],
         game_state.start_multiplayer if button_cooldown == 0 else None,
     )
-    
-    # Add AI training button below the others
-    draw_button(
-        screen,
-        "Entraîner l'IA",
-        buttons_start_x + (buttons_total_width - button_width) / 2,  # Center horizontally
-        buttons_y + button_height + 20,  # 20px below other buttons
-        button_width,
-        button_height,
-        (100, 100, 180),  # Slightly different color
-        (150, 150, 220),
-        fonts["button"],
-        game_state.train_ai if button_cooldown == 0 else None,
-    )
 
 def draw_ship_selection(screen, game_state, fonts):
     """Draw the ship selection UI during placement phase with responsive layout"""

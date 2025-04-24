@@ -495,15 +495,6 @@ def handle_game():
                         message_color = WHITE
                         message_timer = 90
                         
-                        # Check game end
-                        if game_state.winner is not None:
-                            effects_manager.create_animated_message(
-                                "DÉFAITE!", RED, 
-                                resolution[0] // 2, 
-                                resolution[1] // 2, 
-                                duration=180
-                            )
-                            return
                     else:
                         effects_manager.create_miss_effect(effect_x, effect_y)
                         # Adjust position of miss message (moved down by 5px)
