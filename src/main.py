@@ -613,7 +613,7 @@ while running:
     
     # Draw mute button
     pygame.draw.rect(screen, WHITE if not music_muted else RED, mute_button_rect)
-    mute_text = fonts["small"].render("🔊 ON" if not music_muted else "🔇 OFF", True, GRAY)
+    mute_text = fonts["small"].render("ON" if not music_muted else "OFF", True, GRAY)
     text_rect = mute_text.get_rect(center=mute_button_rect.center)
     screen.blit(mute_text, text_rect)
 
