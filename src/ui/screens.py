@@ -33,18 +33,18 @@ def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
     screen.blit(title, (title_x, title_y))
     
     
-    # Calculate button dimensions based on screen size
-    button_width = min(300, screen_width * 0.25)  # 25% of screen width, max 300px
-    button_height = min(80, screen_height * 0.1)   # 10% of screen height, max 80px
-    button_margin = button_width * 0.2  # Space between buttons
+    # Calculate button dimensions
+    button_width = min(300, screen_width * 0.25)
+    button_height = min(80, screen_height * 0.1)
+    button_margin = button_width * 0.2
     
-    # Center the buttons horizontally at bottom of screen
+    # Center buttons horizontally
     buttons_total_width = 2 * button_width + button_margin
     buttons_start_x = (screen_width - buttons_total_width) / 2
-    buttons_y = screen_height * 0.75  # 75% down the screen
+    buttons_y = screen_height * 0.75
     
-    # Single player button (left button)
-    single_player_clicked = draw_button(
+    # Main buttons (keep existing ones)
+    draw_button(
         screen,
         "Joueur vs IA",
         buttons_start_x,
@@ -57,7 +57,6 @@ def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
         game_state.start_single_player if button_cooldown == 0 else None,
     )
     
-    # Multiplayer button (right button)
     draw_button(
         screen,
         "Deux Joueurs",
@@ -69,6 +68,20 @@ def draw_main_menu(screen, game_state, fonts, background, button_cooldown=0):
         WHITE,
         fonts["button"],
         game_state.start_multiplayer if button_cooldown == 0 else None,
+    )
+    
+    # Add AI training button below the others
+    draw_button(
+        screen,
+        "Entraîner l'IA",
+        buttons_start_x + (buttons_total_width - button_width) / 2,  # Center horizontally
+        buttons_y + button_height + 20,  # 20px below other buttons
+        button_width,
+        button_height,
+        (100, 100, 180),  # Slightly different color
+        (150, 150, 220),
+        fonts["button"],
+        game_state.train_ai if button_cooldown == 0 else None,
     )
 
 def draw_ship_selection(screen, game_state, fonts):

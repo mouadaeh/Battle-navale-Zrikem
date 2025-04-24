@@ -164,6 +164,9 @@ class GameState:
     
     def restart_game(self):
         """Reset the game to start a new one"""
+        # Keep the existing AI instance to preserve learning
+        current_ai = self.computer_ai
+        
         self.state = GameState.MENU
         self.player_board = Board()
         self.computer_board = Board()
@@ -178,6 +181,10 @@ class GameState:
         self.ships = []
         for ship_config in SHIPS:
             self.ships.append({"name": ship_config["name"], "size": ship_config["size"]})
+            
+        # Keep the trained AI but reset its state for the new game
+        self.computer_ai = current_ai
+        self.computer_ai.reset_game_state()
     
     def handle_cell_hit(self, cell_value, row, col, cell_size, cell_x, cell_y, screen, boom_image):
         """Handle the event when a cell is hit"""
@@ -191,4 +198,68 @@ class GameState:
     def set_winner(self, winner):
         """Set the winner and end the game"""
         self.winner = winner
-        self.state = GameState.END
+        self.state = self.END
+        
+        # Save AI learning data if it exists and we're in single player mode
+        if self.game_mode == self.SINGLE_PLAYER and self.computer_ai:
+            try:
+                print("Saving AI model...")
+                self.computer_ai.save_model()
+            except Exception as e:
+                print(f"Error saving AI model: {e}")
+
+    def train_ai(self):
+        """Train the AI by playing against itself"""
+        import tkinter as tk
+        from tkinter import simpledialog, messagebox
+        
+        try:
+            # Initialize AI if not already done
+            if not hasattr(self, 'computer_ai') or self.computer_ai is None:
+                self.computer_ai = ReinforcementLearningAI(self.player_board)
+            
+            # Create popup dialog to ask for number of training games
+            root = tk.Tk()
+            root.withdraw()  # Hide the main window
+            
+            # Show info about current AI state
+            current_states = len(self.computer_ai.q_table) if hasattr(self.computer_ai, 'q_table') else 0
+            
+            num_games = simpledialog.askinteger(
+                "AI Training", 
+                f"Current AI knowledge: {current_states} states\n\n"
+                "Enter number of games to train (100-1000):",
+                minvalue=100, maxvalue=1000, initialvalue=200
+            )
+            
+            if num_games:
+                # Show progress dialog
+                messagebox.showinfo(
+                    "Training Started",
+                    f"Training AI for {num_games} games.\n"
+                    "This may take a few minutes.\n"
+                    "Check the console for progress updates."
+                )
+                
+                # Start training
+                self.computer_ai.train_against_self(num_games=num_games, save_interval=20)
+                
+                # Show completion message
+                messagebox.showinfo(
+                    "Training Complete", 
+                    f"AI training complete!\n"
+                    f"The AI now knows {len(self.computer_ai.q_table)} different game states."
+                )
+        except Exception as e:
+            print(f"Error during AI training: {e}")
+            
+            # Show error message
+            try:
+                messagebox.showerror("Training Error", f"Error during training: {e}")
+            except:
+                pass  # If messagebox fails, continue
+        finally:
+            try:
+                root.destroy()
+            except:
+                pass

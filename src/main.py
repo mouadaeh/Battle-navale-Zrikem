@@ -577,6 +577,14 @@ while running:
         previous_state = game_state.state
         recently_changed_state = True
         
+        # Save AI model when transitioning to END state
+        if game_state.state == GameState.END and game_state.computer_ai:
+            try:
+                print("Saving AI model at game end...")
+                game_state.computer_ai.save_model()
+            except Exception as e:
+                print(f"Error saving AI model: {e}")
+        
         # Clear fire animations when game ends or restarts
         if game_state.state == GameState.END or (game_state.state == GameState.MENU and previous_state == GameState.END):
             effects_manager.clear_fire_animations()
