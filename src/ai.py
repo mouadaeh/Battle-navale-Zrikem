@@ -104,7 +104,7 @@ class ReinforcementLearningAI:
         row, col = self.last_hit
         
         # Reset if we've hit max ship size
-        if self.current_ship_hits >= 5:
+        if self.current_ship_hits >= 10:
             self._reset_targeting()
             return self._smart_random_attack()
         
