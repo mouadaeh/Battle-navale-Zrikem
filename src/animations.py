@@ -49,7 +49,7 @@ class WaterAnimation:
         self.cell_size = cell_size
         self.frame = 0
         self.max_frames = 4
-        self.animation_speed = 5  # Lower is faster
+        self.animation_speed = 8  # Lower is faster
         self.counter = 0
         self.active = True
         self.frames = []
