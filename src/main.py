@@ -124,6 +124,10 @@ def handle_placement():
     """Handle the ship placement phase"""
     global button_cooldown, message_text, message_color, message_timer
     
+    # Draw the gameplay background first
+    if "gameplay_background" in assets:
+        screen.blit(assets["gameplay_background"], (0, 0))
+    
     # Draw ship selection
     draw_ship_selection(screen, game_state, fonts)
     
@@ -245,6 +249,10 @@ def handle_game():
     """Handle the game phase (player turns, computer turns)"""
     global message_timer, message_text, message_color, waiting_for_action, button_cooldown, last_click_pos, click_processed
     
+    # Draw the gameplay background first
+    if "gameplay_background" in assets:
+        screen.blit(assets["gameplay_background"], (0, 0))
+    
     # Always draw the player's grid with placed ships
     player_x, player_y = draw_grid(screen, game_state.player_board, fonts, assets, reveal=True, 
                                    is_player_grid=True, position="left")
@@ -277,7 +285,9 @@ def handle_game():
                 if not any(fire.x == cell_x and fire.y == cell_y for fire in effects_manager.fire_animations):
                     effects_manager.create_fire_animation(cell_x, cell_y, int(cell_size))
             elif cell_value == 'O':  # Case manquée
-                pygame.draw.circle(screen, WHITE, (int(cell_x + cell_size / 2), int(cell_y + cell_size / 2)), int(cell_size / 4))
+                # Create water animation if one doesn't already exist at this position
+                if not hasattr(effects_manager, 'water_animations') or not any(water.x == cell_x and water.y == cell_y for water in effects_manager.water_animations):
+                    effects_manager.create_water_animation(cell_x, cell_y, int(cell_size))
     
     # Add this to render hits on computer's board too:
     for row in range(len(game_state.computer_board.grid)):
@@ -371,7 +381,7 @@ def handle_game():
                                 change_music(game_state.victory_music)
                                 return
                         else:
-                            effects_manager.create_miss_effect(effect_x, effect_y)
+                            effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size))
                             effects_manager.create_animated_message(
                                 "MANQUÉ!", WHITE, 
                                 comp_x + game_state.computer_board.width // 2,
@@ -428,7 +438,7 @@ def handle_game():
                                     change_music(game_state.victory_music)
                                     return
                             else:
-                                effects_manager.create_miss_effect(effect_x, effect_y)
+                                effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size))
                                 effects_manager.create_animated_message(
                                     "MANQUÉ!", WHITE, 
                                     comp_x + game_state.computer_board.width // 2,
@@ -496,7 +506,7 @@ def handle_game():
                         message_timer = 90
                         
                     else:
-                        effects_manager.create_miss_effect(effect_x, effect_y)
+                        effects_manager.create_water_animation(player_x + col * cell_size, player_y + row * cell_size, int(cell_size))
                         # Adjust position of miss message (moved down by 5px)
                         effects_manager.create_animated_message(
                             "MANQUÉ!", WHITE, 
@@ -565,6 +575,8 @@ while running:
         # Clear fire animations when game ends or restarts
         if game_state.state == GameState.END or (game_state.state == GameState.MENU and previous_state == GameState.END):
             effects_manager.clear_fire_animations()
+            if hasattr(effects_manager, 'clear_water_animations'):
+                effects_manager.clear_water_animations()
         
         # Change music based on state
         if game_state.state == GameState.MENU:

@@ -77,7 +77,8 @@ def draw_grid(screen, board, fonts, assets, reveal=False, is_player_grid=False, 
                 pass  # We'll handle hit visualization with the fire animation
             elif board.view[row][col] == 'O':
                 # Miss marker
-                pygame.draw.circle(screen, WHITE, rect.center, min(rect.width, rect.height) // 3, 2)
+                pass
+                #pygame.draw.circle(screen, WHITE, rect.center, min(rect.width, rect.height) // 3, 2)
             elif board.grid[row][col] != '.' and reveal:
                 # Ship marker
                 ship_rect = rect.inflate(-4, -4)  # Make ship slightly smaller than cell

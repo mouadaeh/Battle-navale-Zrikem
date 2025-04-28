@@ -1,21 +1,28 @@
 import pygame
 import os
-from src.utils.constants import BACKGROUND_PATH, WATER_PATH
+from src.utils.constants import BACKGROUND_PATH, WATER_PATH,GAMEPLAY_BACKGROUND_PATH
 
 def load_assets(resolution):
     """Load all game assets"""
     assets = {}
     
-    # Load background
+    # Load menu background
     try:
         background = pygame.image.load(BACKGROUND_PATH)
         background = pygame.transform.scale(background, resolution)
         assets["background"] = background
-    except:
+        
+        # Load gameplay background (add this section)
+        gameplay_bg = pygame.image.load(GAMEPLAY_BACKGROUND_PATH)
+        gameplay_bg = pygame.transform.scale(gameplay_bg, resolution)
+        assets["gameplay_background"] = gameplay_bg
+    except Exception as e:
+        print(f"Error loading background: {e}")
         # Create a fallback background
         bg = pygame.Surface(resolution)
         bg.fill((30, 50, 90))  # Dark blue
         assets["background"] = bg
+        assets["gameplay_background"] = bg  # Use same fallback for gameplay
     
      # Load water image for grid
     try:

@@ -37,6 +37,7 @@ FPS = 60
 
 # Background path
 BACKGROUND_PATH = os.path.join("assets", "background", "background1.jpg")
+GAMEPLAY_BACKGROUND_PATH = os.path.join("assets", "background", "background2.jpg")
 
 WATER_PATH = os.path.join("assets", "map", "tiled_sea1.png")  # Adjust path as needed
 

@@ -41,6 +41,44 @@ class FireAnimation:
         if self.active and self.frames:
             screen.blit(self.frames[self.frame], (self.x, self.y))
 
+class WaterAnimation:
+    """Class for animated water effects when ships are missed"""
+    def __init__(self, x, y, cell_size):
+        self.x = x
+        self.y = y
+        self.cell_size = cell_size
+        self.frame = 0
+        self.max_frames = 4
+        self.animation_speed = 5  # Lower is faster
+        self.counter = 0
+        self.active = True
+        self.frames = []
+        
+        # Load all fire animation frames
+        for i in range(1, self.max_frames + 1):
+            try:
+                img = pygame.image.load(os.path.join("assets", "water", f"frame{i}.png"))
+                img = pygame.transform.scale(img, (int(cell_size), int(cell_size)))
+                self.frames.append(img)
+            except Exception as e:
+                print(f"Error loading water frame {i}: {e}")
+                # Create a fallback colored rectangle if image loading fails
+                surf = pygame.Surface((cell_size, cell_size))
+                surf.fill(RED)
+                self.frames.append(surf)
+    
+    def update(self):
+        """Update the animation frame"""
+        self.counter += 1
+        if self.counter >= self.animation_speed:
+            self.counter = 0
+            self.frame = (self.frame + 1) % self.max_frames
+    
+    def draw(self, screen):
+        """Draw the current frame of the animation"""
+        if self.active and self.frames:
+            screen.blit(self.frames[self.frame], (self.x, self.y))
+
 class AnimatedMessage:
     """Class for animated floating messages"""
     def __init__(self, text, color, duration=60, start_size=20, max_size=30, fade_in=10, fade_out=20):
@@ -113,7 +151,13 @@ class EffectsManager:
     def create_fire_animation(self, x, y, cell_size):
         """Create a new fire animation at the specified grid position"""
         self.fire_animations.append(FireAnimation(x, y, cell_size))
+
+    def create_water_animation(self, x, y, cell_size):
+        """Create a water animation at the specified grid position"""
+        self.water_animations = getattr(self, 'water_animations', [])  # Create list if it doesn't exist
+        self.water_animations.append(WaterAnimation(x, y, cell_size))
         
+    # Update the update_effects method in animations.py to include this:
     def update_effects(self, screen):
         """Update and draw all visual effects"""
         expired_effects = []
@@ -123,7 +167,8 @@ class EffectsManager:
             if effect["type"] == "hit":
                 pygame.draw.circle(screen, RED, (effect["x"], effect["y"]), effect["radius"])
             elif effect["type"] == "miss":
-                pygame.draw.circle(screen, WHITE, (effect["x"], effect["y"]), effect["radius"], 2)
+                # Don't draw white circles anymore since we use water animations
+                pass
             effect["radius"] += 1
             effect["time"] -= 1
             if effect["time"] <= 0:
@@ -137,6 +182,12 @@ class EffectsManager:
         for fire in self.fire_animations:
             fire.update()
             fire.draw(screen)
+            
+        # Update and draw water animations
+        if hasattr(self, 'water_animations'):
+            for water in self.water_animations[:]:
+                water.update()
+                water.draw(screen)
     
     def update_animated_messages(self, screen):
         """Update and draw all animated messages"""
@@ -196,3 +247,8 @@ class EffectsManager:
     def clear_fire_animations(self):
         """Clear all active fire animations"""
         self.fire_animations = []
+    
+    def clear_water_animations(self):
+        """Clear all active water animations"""
+        if hasattr(self, 'water_animations'):
+            self.water_animations = []
