@@ -360,12 +360,12 @@ def handle_game():
                         
                         if hit:
                             effects_manager.create_hit_effect(effect_x, effect_y)
-                            effects_manager.create_animated_message(
-                                "TOUCHÉ!", RED, 
-                                comp_x + game_state.computer_board.width // 2,
-                                comp_y + game_state.computer_board.height + 45,
-                                duration=90
-                            )
+                            # effects_manager.create_animated_message(
+                            #     "TOUCHÉ!", RED, 
+                            #     comp_x + game_state.computer_board.width // 2,
+                            #     comp_y + game_state.computer_board.height + 45,
+                            #     duration=90
+                            # )
                             
                             message_text = "Vous rejouez"
                             message_color = WHITE
@@ -382,12 +382,12 @@ def handle_game():
                                 return
                         else:
                             effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size))
-                            effects_manager.create_animated_message(
-                                "MANQUÉ!", WHITE, 
-                                comp_x + game_state.computer_board.width // 2,
-                                comp_y + game_state.computer_board.height + 45,
-                                duration=90
-                            )
+                            # effects_manager.create_animated_message(
+                            #     "MANQUÉ!", WHITE, 
+                            #     comp_x + game_state.computer_board.width // 2,
+                            #     comp_y + game_state.computer_board.height + 45,
+                            #     duration=90
+                            # )
                             
                             message_timer = 90
                             game_state.player_turn = False
@@ -417,12 +417,12 @@ def handle_game():
                             
                             if hit:
                                 effects_manager.create_hit_effect(effect_x, effect_y)
-                                effects_manager.create_animated_message(
-                                    "TOUCHÉ!", RED, 
-                                    comp_x + game_state.computer_board.width // 2,
-                                    comp_y + game_state.computer_board.height + 45,
-                                    duration=90
-                                )
+                                # effects_manager.create_animated_message(
+                                #     "TOUCHÉ!", RED, 
+                                #     comp_x + game_state.computer_board.width // 2,
+                                #     comp_y + game_state.computer_board.height + 45,
+                                #     duration=90
+                                # )
                                 
                                 message_text = "Vous rejouez"
                                 message_color = WHITE
@@ -439,12 +439,12 @@ def handle_game():
                                     return
                             else:
                                 effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size))
-                                effects_manager.create_animated_message(
-                                    "MANQUÉ!", WHITE, 
-                                    comp_x + game_state.computer_board.width // 2,
-                                    comp_y + game_state.computer_board.height + 45,
-                                    duration=90
-                                )
+                                # effects_manager.create_animated_message(
+                                #     "MANQUÉ!", WHITE, 
+                                #     comp_x + game_state.computer_board.width // 2,
+                                #     comp_y + game_state.computer_board.height + 45,
+                                #     duration=90
+                                # )
                                 
                                 message_timer = 90
                                 game_state.player_turn = False
@@ -494,12 +494,12 @@ def handle_game():
                     if hit:
                         effects_manager.create_hit_effect(effect_x, effect_y)
                         # Adjust position of hit message (moved down by 5px)
-                        effects_manager.create_animated_message(
-                            "TOUCHÉ!", RED, 
-                            player_x + game_state.player_board.width // 2,
-                            player_y + game_state.player_board.height + 45,  # Changed from 40 to 45
-                            duration=90
-                        )
+                        # effects_manager.create_animated_message(
+                        #     "TOUCHÉ!", RED, 
+                        #     player_x + game_state.player_board.width // 2,
+                        #     player_y + game_state.player_board.height + 45,  # Changed from 40 to 45
+                        #     duration=90
+                        # )
                         
                         message_text = "L'ordinateur rejoue"
                         message_color = WHITE
@@ -508,12 +508,12 @@ def handle_game():
                     else:
                         effects_manager.create_water_animation(player_x + col * cell_size, player_y + row * cell_size, int(cell_size))
                         # Adjust position of miss message (moved down by 5px)
-                        effects_manager.create_animated_message(
-                            "MANQUÉ!", WHITE, 
-                            player_x + game_state.player_board.width // 2,
-                            player_y + game_state.player_board.height + 45,  # Changed from 40 to 45
-                            duration=90
-                        )
+                        # effects_manager.create_animated_message(
+                        #     "MANQUÉ!", WHITE, 
+                        #     player_x + game_state.player_board.width // 2,
+                        #     player_y + game_state.player_board.height + 45,  # Changed from 40 to 45
+                        #     duration=90
+                        # )
                         
                         message_text = "Votre tour"
                         message_color = WHITE

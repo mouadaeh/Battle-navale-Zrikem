@@ -4,8 +4,8 @@ from src.utils.constants import RED, BLACK, WHITE, GREEN, SKY_BLUE, BLUE, WATER_
 def draw_grid(screen, board, fonts, assets, reveal=False, is_player_grid=False, position="center"):
     """Draw a game board grid with ships and hits/misses"""
     # Setup - Move title higher up
-    title = fonts["large"].render("Bataille Navale", True, BLUE)
-    screen.blit(title, (screen.get_width() // 2 - title.get_width() // 2, 10))
+    # title = fonts["large"].render("Bataille Navale", True, BLUE)
+    # screen.blit(title, (screen.get_width() // 2 - title.get_width() // 2, 10))
     
     # Create subtitle
     if is_player_grid:
