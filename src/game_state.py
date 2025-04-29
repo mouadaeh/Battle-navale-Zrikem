@@ -59,7 +59,9 @@ class GameState:
     
     def start_multiplayer(self):
         """Start multiplayer game"""
+        from src.multiplayer import LocalMultiplayer
         self.game_mode = self.MULTIPLAYER
+        self.multiplayer = LocalMultiplayer()
         self.state = self.PLACEMENT
         self.reset_game()
     

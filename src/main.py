@@ -245,6 +245,364 @@ def handle_placement():
                         if game_state.current_ship_index >= len(game_state.ships):
                             game_state.state = GameState.GAME
 
+def handle_multiplayer_placement():
+    """Handle ship placement for multiplayer"""
+    global button_cooldown, message_text, message_color, message_timer
+    
+    # Important: Always update transition timer here
+    if game_state.multiplayer.transition_screen:
+        game_state.multiplayer.update_transition()
+        
+        # COMPLETELY clear the screen with solid black
+        screen.fill((0, 0, 0))
+        
+        # Create transition overlay
+        overlay = pygame.Surface(resolution, pygame.SRCALPHA)
+        overlay.fill((0, 0, 50, 200))  # Dark blue semi-transparent
+        screen.blit(overlay, (0, 0))
+        
+        # Draw transition message
+        msg = fonts["large"].render(game_state.multiplayer.transition_message, True, WHITE)
+        msg_rect = msg.get_rect(center=(resolution[0]//2, resolution[1]//2 - 50))
+        screen.blit(msg, msg_rect)
+        
+        # Draw countdown
+        seconds = game_state.multiplayer.transition_timer // 60 + 1
+        countdown = fonts["medium"].render(f"Changement dans {seconds}...", True, WHITE)
+        countdown_rect = countdown.get_rect(center=(resolution[0]//2, resolution[1]//2 + 30))
+        screen.blit(countdown, countdown_rect)
+        
+        # Add privacy message
+        privacy = fonts["small"].render("Passez le contrôle à l'autre joueur", True, WHITE)
+        privacy_rect = privacy.get_rect(center=(resolution[0]//2, resolution[1]//2 + 80))
+        screen.blit(privacy, privacy_rect)
+        
+        # Important: Process events here to continue counting down even during transition
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        
+        # Skip the rest of the function so no boards are drawn during transition
+        return
+    
+    # Continue with normal placement once transition is over...
+    # Draw the gameplay background
+    if "gameplay_background" in assets:
+        screen.blit(assets["gameplay_background"], (0, 0))
+    
+    # Get current player info
+    current_player = game_state.multiplayer.current_player
+    current_board = game_state.multiplayer.get_current_board()
+    
+    # Draw player indicator title
+    title = fonts["large"].render(f"Joueur {current_player} - Placement", True, WHITE)
+    screen.blit(title, (resolution[0]//2 - title.get_width()//2, 20))
+    
+    # Draw ship selection
+    draw_ship_selection(screen, game_state, fonts)
+    
+    # Draw player's grid in the center
+    player_x, player_y = draw_grid(screen, current_board, fonts, assets, reveal=True, 
+                                  is_player_grid=True, position="center")
+    
+    # Draw already placed ships
+    cell_size = current_board.width / len(current_board.grid[0])
+    ships_list = game_state.multiplayer.get_ships_list()
+    for ship in ships_list:
+        ship_image = ship_images.get(ship['name'].lower())
+        if ship_image:
+            scaled_image = pygame.transform.scale(ship_image, (int(cell_size * ship['size']), int(cell_size)))
+            if ship['horizontal']:
+                screen.blit(scaled_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
+            else:
+                rotated_image = pygame.transform.rotate(scaled_image, 90)
+                screen.blit(rotated_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
+    
+    # Handle cooldown
+    if button_cooldown > 0:
+        message_text = f"Joueur {current_player}, placez vos navires. Touche R pour pivoter."
+        message_color = WHITE
+        message_timer = 60
+        message = fonts["small"].render(message_text, True, message_color)
+        screen.blit(message, (player_x + current_board.width//2 - message.get_width()//2, 
+                             player_y + current_board.height + 40))
+        return
+    
+    # Get current ship to place
+    current_ship = None
+    if game_state.current_ship_index < len(game_state.ships):
+        current_ship = game_state.ships[game_state.current_ship_index]
+    
+    # Handle ship placement preview and interaction
+    mouse_pos = pygame.mouse.get_pos()
+    
+    # Draw ship preview
+    if current_ship and player_x <= mouse_pos[0] < player_x + current_board.width and player_y <= mouse_pos[1] < player_y + current_board.height:
+        col = int((mouse_pos[0] - player_x) // cell_size)
+        row = int((mouse_pos[1] - player_y) // cell_size)
+        
+        valid_placement = True
+        if game_state.horizontal:
+            if col + current_ship['size'] > 10:
+                valid_placement = False
+            else:
+                for i in range(current_ship['size']):
+                    if row < 0 or row >= 10 or col + i < 0 or col + i >= 10 or current_board.grid[row][col + i] == 'S':
+                        valid_placement = False
+                        break
+        else:  # Vertical
+            if row + current_ship['size'] > 10:
+                valid_placement = False
+            else:
+                for i in range(current_ship['size']):
+                    if row + i < 0 or row + i >= 10 or col < 0 or col >= 10 or current_board.grid[row + i][col] == 'S':
+                        valid_placement = False
+                        break
+        
+        # Draw the preview
+        ship_image = ship_images.get(current_ship['name'].lower())
+        if ship_image:
+            scaled_image = pygame.transform.scale(ship_image, (int(cell_size * current_ship['size']), int(cell_size)))
+            if valid_placement:
+                if game_state.horizontal:
+                    screen.blit(scaled_image, (player_x + col * cell_size, player_y + row * cell_size))
+                else:
+                    rotated_image = pygame.transform.rotate(scaled_image, 90)
+                    screen.blit(rotated_image, (player_x + col * cell_size, player_y + row * cell_size))
+            else:
+                # Invalid placement overlay
+                overlay = pygame.Surface((scaled_image.get_width(), scaled_image.get_height()), pygame.SRCALPHA)
+                overlay.fill((255, 0, 0, 128))
+                if game_state.horizontal:
+                    screen.blit(scaled_image, (player_x + col * cell_size, player_y + row * cell_size))
+                    screen.blit(overlay, (player_x + col * cell_size, player_y + row * cell_size))
+                else:
+                    rotated_image = pygame.transform.rotate(scaled_image, 90)
+                    screen.blit(rotated_image, (player_x + col * cell_size, player_y + row * cell_size))
+                    overlay = pygame.transform.rotate(overlay, 90)
+                    screen.blit(overlay, (player_x + col * cell_size, player_y + row * cell_size))
+    
+    # Handle mouse clicks for placement
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_r and game_state.rotation_cooldown == 0:
+            game_state.horizontal = not game_state.horizontal
+            game_state.rotation_cooldown = 15
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if (player_x <= mouse_pos[0] < player_x + current_board.width and 
+                player_y <= mouse_pos[1] < player_y + current_board.height):
+                col = int((mouse_pos[0] - player_x) // cell_size)
+                row = int((mouse_pos[1] - player_y) // cell_size)
+                if game_state.current_ship_index < len(game_state.ships):
+                    ship = game_state.ships[game_state.current_ship_index]
+                    if game_state.multiplayer.place_ship(row, col, ship['size'], game_state.horizontal):
+                        game_state.current_ship_index += 1
+                        
+                        # Check if all ships are placed for current player
+                        if game_state.current_ship_index >= len(game_state.ships):
+                            # Reset for next player or game phase
+                            game_state.current_ship_index = 0
+                            
+                            # If we're no longer in placement phase, move to game
+                            if not game_state.multiplayer.placement_phase:
+                                game_state.state = GameState.GAME
+
+def handle_multiplayer_game():
+    """Handle the multiplayer game phase"""
+    global message_timer, message_text, message_color, waiting_for_action, button_cooldown, click_processed
+    
+    # Handle transition screen if active
+    if game_state.multiplayer.transition_screen:
+        # Important: toujours mettre à jour le compteur de transition
+        game_state.multiplayer.update_transition()
+        
+        # COMPLETELY clear the screen with solid black
+        screen.fill((0, 0, 0))
+        
+        # Create transition overlay
+        overlay = pygame.Surface(resolution, pygame.SRCALPHA)
+        overlay.fill((0, 0, 50, 200))
+        screen.blit(overlay, (0, 0))
+        
+        # Draw transition message
+        msg = fonts["large"].render(game_state.multiplayer.transition_message, True, WHITE)
+        msg_rect = msg.get_rect(center=(resolution[0]//2, resolution[1]//2 - 50))
+        screen.blit(msg, msg_rect)
+        
+        # Draw countdown
+        seconds = game_state.multiplayer.transition_timer // 60 + 1
+        countdown = fonts["medium"].render(f"Changement dans {seconds}...", True, WHITE)
+        countdown_rect = countdown.get_rect(center=(resolution[0]//2, resolution[1]//2 + 30))
+        screen.blit(countdown, countdown_rect)
+        
+        # Add privacy message
+        privacy = fonts["small"].render("Passez le contrôle à l'autre joueur", True, WHITE)
+        privacy_rect = privacy.get_rect(center=(resolution[0]//2, resolution[1]//2 + 80))
+        screen.blit(privacy, privacy_rect)
+        
+        # Important: traiter les événements pour que le décompte puisse continuer
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        
+        # Skip the rest of the function so no boards are drawn during transition
+        return
+    
+    # Continue with normal game once transition is over...
+    # Draw the gameplay background
+    if "gameplay_background" in assets:
+        screen.blit(assets["gameplay_background"], (0, 0))
+    
+    # Get current player info
+    current_player = game_state.multiplayer.current_player
+    current_board = game_state.multiplayer.get_current_board()
+    opponent_board = game_state.multiplayer.get_opponent_board()
+    
+    # Draw title
+    title = fonts["large"].render(f"Joueur {current_player}", True, WHITE)
+    screen.blit(title, (resolution[0]//2 - title.get_width()//2, 20))
+    
+    # Draw player's board with ships
+    player_x, player_y = draw_grid(screen, current_board, fonts, assets, reveal=True, 
+                                  is_player_grid=True, position="left")
+    
+    # Draw opponent's board (hidden ships)
+    comp_x, comp_y = draw_grid(screen, opponent_board, fonts, assets, reveal=False, 
+                              is_player_grid=False, position="right")
+    
+    # Draw ships on player's board
+    cell_size = current_board.width / len(current_board.grid[0])
+    ships_list = game_state.multiplayer.player1_ships if current_player == 1 else game_state.multiplayer.player2_ships
+    
+    for ship in ships_list:
+        ship_image = ship_images.get(ship['name'].lower())
+        if ship_image:
+            scaled_image = pygame.transform.scale(ship_image, (int(cell_size * ship['size']), int(cell_size)))
+            if ship['horizontal']:
+                screen.blit(scaled_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
+            else:
+                rotated_image = pygame.transform.rotate(scaled_image, 90)
+                screen.blit(rotated_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
+    
+    # Render hits and misses on player's board
+    for row in range(len(current_board.grid)):
+        for col in range(len(current_board.grid[row])):
+            cell_value = current_board.view[row][col]
+            cell_x = player_x + col * cell_size
+            cell_y = player_y + row * cell_size
+
+            if cell_value == 'X':  # Hit - shows hits from opponent
+                effects_manager.create_fire_animation(cell_x + cell_size/2, cell_y + cell_size/2, int(cell_size)) 
+            elif cell_value == 'O':  # Miss - shows misses from opponent
+                effects_manager.create_water_animation(cell_x, cell_y, int(cell_size))
+    
+    # Render hits and misses on opponent's board
+    for row in range(len(opponent_board.grid)):
+        for col in range(len(opponent_board.grid[row])):
+            cell_value = opponent_board.view[row][col]
+            cell_x = comp_x + col * cell_size
+            cell_y = comp_y + row * cell_size
+            
+            if cell_value == 'X':  # Hit - shows hits BY current player
+                effects_manager.create_fire_animation(cell_x + cell_size/2, cell_y + cell_size/2, int(cell_size))
+            elif cell_value == 'O':  # Miss - shows misses BY current player
+                effects_manager.create_water_animation(cell_x, cell_y, int(cell_size))
+    
+    # Reset click_processed flag
+    click_processed = False
+    
+    # If we're in a cooldown period, show message but don't process game logic
+    if button_cooldown > 0:
+        message = fonts["small"].render(message_text, True, message_color)
+        screen.blit(message, (resolution[0]//2 - message.get_width()//2, 
+                             max(player_y, comp_y) + current_board.height + 30))
+        return
+    
+    # Draw instructions
+    instructions = fonts["small"].render("Cliquez sur la grille adverse pour attaquer", True, WHITE)
+    screen.blit(instructions, (resolution[0]//2 - instructions.get_width()//2, comp_y - 40))
+    
+    # If a message is being displayed
+    if message_timer > 0:
+        message = fonts["small"].render(message_text, True, message_color)
+        screen.blit(message, (resolution[0]//2 - message.get_width()//2, 
+                             max(player_y, comp_y) + current_board.height + 30))
+        return
+    
+    # Process player's attack
+    mouse_pressed = pygame.mouse.get_pressed()
+    mouse_pos = pygame.mouse.get_pos()
+    
+    if mouse_pressed[0] and not click_processed:
+        if comp_x <= mouse_pos[0] < comp_x + opponent_board.width and comp_y <= mouse_pos[1] < comp_y + opponent_board.height:
+            col = int((mouse_pos[0] - comp_x) // cell_size)
+            row = int((mouse_pos[1] - comp_y) // cell_size)
+            
+            if opponent_board.view[row][col] == '.':
+                click_processed = True
+                
+                # Process attack
+                hit, victory = game_state.multiplayer.attack(row, col)
+                
+                # Add visual effect
+                effect_x = comp_x + col * cell_size + cell_size / 2
+                effect_y = comp_y + row * cell_size + cell_size / 2
+                
+                if hit:
+                    effects_manager.create_hit_effect(effect_x, effect_y)
+                    message_text = "Touché! Vous rejouez."
+                    message_color = WHITE
+                    message_timer = 75
+                    
+                    # Check for victory
+                    if victory:
+                        game_state.winner = f"player{current_player}"
+                        game_state.state = GameState.END
+                else:
+                    effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size))
+                    message_text = "Manqué! Au tour de votre adversaire."
+                    message_color = WHITE
+                    message_timer = 90
+    
+    # Also check for pygame events to catch any missed clicks
+    for event in pygame.event.get([pygame.MOUSEBUTTONDOWN]):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not click_processed:
+            mouse_pos = event.pos
+            
+            if comp_x <= mouse_pos[0] < comp_x + opponent_board.width and comp_y <= mouse_pos[1] < comp_y + opponent_board.height:
+                col = int((mouse_pos[0] - comp_x) // cell_size)
+                row = int((mouse_pos[1] - comp_y) // cell_size)
+                
+                if opponent_board.view[row][col] == '.':
+                    click_processed = True
+                    
+                    # Process attack
+                    hit, victory = game_state.multiplayer.attack(row, col)
+                    
+                    # Add visual effect
+                    effect_x = comp_x + col * cell_size + cell_size / 2
+                    effect_y = comp_y + row * cell_size + cell_size / 2
+                    
+                    if hit:
+                        effects_manager.create_hit_effect(effect_x, effect_y)
+                        message_text = "Touché! Vous rejouez."
+                        message_color = WHITE
+                        message_timer = 75
+                        
+                        # Check for victory
+                        if victory:
+                            game_state.winner = f"player{current_player}"
+                            game_state.state = GameState.END
+                    else:
+                        effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size))
+                        message_text = "Manqué! Au tour de votre adversaire."
+                        message_color = WHITE
+                        message_timer = 90
+
 def handle_game():
     """Handle the game phase (player turns, computer turns)"""
     global message_timer, message_text, message_color, waiting_for_action, button_cooldown, last_click_pos, click_processed
@@ -296,11 +654,15 @@ def handle_game():
             cell_x = comp_x + col * cell_size
             cell_y = comp_y + row * cell_size
             
-            if cell_value == 'X':  # Hit cell
+            if cell_value == 'X':  # Case touchée
                 # Create fire animation if one doesn't already exist at this position
                 if not any(fire.x == cell_x and fire.y == cell_y for fire in effects_manager.fire_animations):
                     effects_manager.create_fire_animation(cell_x, cell_y, int(cell_size))
-
+            elif cell_value == 'O':  # Case manquée
+                # Create water animation if one doesn't already exist at this position
+                if not hasattr(effects_manager, 'water_animations') or not any(water.x == cell_x and water.y == cell_y for water in effects_manager.water_animations):
+                    effects_manager.create_water_animation(cell_x, cell_y, int(cell_size))
+    
     # Reset click processed flag at the beginning of each frame when in player's turn
     if game_state.game_mode == GameState.SINGLE_PLAYER and game_state.player_turn and message_timer == 0:
         click_processed = False
@@ -389,6 +751,8 @@ def handle_game():
                             #     duration=90
                             # )
                             
+                            message_text = "Manqué! Au tour de votre adversaire."
+                            message_color = WHITE
                             message_timer = 90
                             game_state.player_turn = False
             
@@ -446,6 +810,8 @@ def handle_game():
                                 #     duration=90
                                 # )
                                 
+                                message_text = "Manqué! Au tour de votre adversaire."
+                                message_color = WHITE
                                 message_timer = 90
                                 game_state.player_turn = False
         
@@ -606,11 +972,16 @@ while running:
         if result and recently_changed_state == False:
             recently_changed_state = True
     elif game_state.state == GameState.PLACEMENT:
-        handle_placement()
-        # Après avoir traité l'état de placement, réinitialiser le statut de changement
+        if game_state.game_mode == GameState.SINGLE_PLAYER:
+            handle_placement()
+        else:  # Multiplayer mode
+            handle_multiplayer_placement()
         recently_changed_state = False
     elif game_state.state == GameState.GAME:
-        handle_game()
+        if game_state.game_mode == GameState.SINGLE_PLAYER:
+            handle_game()
+        else:  # Multiplayer mode
+            handle_multiplayer_game()
         recently_changed_state = False
     elif game_state.state == GameState.END:
         draw_game_end(screen, game_state.winner, fonts, game_state.restart_game)
