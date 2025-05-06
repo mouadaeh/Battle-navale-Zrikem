@@ -1,1 +1,1 @@
-    mute_text = fonts["small"].render("ON" if not music_muted else "OFF", True, GRAY)
+current_board
