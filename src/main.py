@@ -560,7 +560,6 @@ def handle_multiplayer_game():
                 effect_y = target_y + row * cell_size + cell_size / 2
                 
                 if hit:
-                    effects_manager.create_hit_effect(effect_x, effect_y)
                     message_text = f"Touché! Le Joueur {current_player} rejouera."
                     message_color = WHITE
                     message_timer = 75
@@ -598,13 +597,8 @@ def handle_multiplayer_game():
                     
                     # Process attack
                     hit, victory = game_state.multiplayer.attack(row, col)
-                    
-                    # Add visual effect
-                    effect_x = target_x + col * cell_size + cell_size / 2
-                    effect_y = target_y + row * cell_size + cell_size / 2
-                    
+        
                     if hit:
-                        effects_manager.create_hit_effect(effect_x, effect_y)
                         message_text = f"Touché! Le Joueur {current_player} rejouera."
                         message_color = WHITE
                         message_timer = 75
@@ -739,12 +733,7 @@ def handle_game():
                         # Player attacks
                         hit = game_state.player_attack(row, col)
                         
-                        # Add visual effect
-                        effect_x = comp_x + col * cell_size + cell_size / 2
-                        effect_y = comp_y + row * cell_size + cell_size / 2
-                        
                         if hit:
-                            effects_manager.create_hit_effect(effect_x, effect_y) 
                             message_text = "Vous rejouez"
                             message_color = WHITE
                             message_timer = 75
@@ -783,13 +772,8 @@ def handle_game():
                             
                             # Player attacks
                             hit = game_state.player_attack(row, col)
-                            
-                            # Add visual effect
-                            effect_x = comp_x + col * cell_size + cell_size / 2
-                            effect_y = comp_y + row * cell_size + cell_size / 2
-                            
+                        
                             if hit:
-                                effects_manager.create_hit_effect(effect_x, effect_y)
                                 message_text = "Vous rejouez"
                                 message_color = WHITE
                                 message_timer = 75
@@ -849,11 +833,8 @@ def handle_game():
                 if row is not None:
                     # Add visual effect
                     cell_size = game_state.player_board.width / len(game_state.player_board.grid[0])
-                    effect_x = player_x + col * cell_size + cell_size / 2
-                    effect_y = player_y + row * cell_size + cell_size / 2
                     
                     if hit:
-                        effects_manager.create_hit_effect(effect_x, effect_y)
                         message_text = "L'ordinateur rejoue"
                         message_color = WHITE
                         message_timer = 90
