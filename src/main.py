@@ -567,7 +567,7 @@ def handle_multiplayer_game():
                     
                     # Check for victory
                     if victory:
-                        game_state.winner = f"player{current_player}"
+                        game_state.winner = f"joueur{current_player}"
                         game_state.state = GameState.END
                         # Play victory music
                         change_music(game_state.victory_music)
@@ -610,7 +610,7 @@ def handle_multiplayer_game():
                         message_timer = 75
                         
                         if victory:
-                            game_state.winner = f"player{current_player}"
+                            game_state.winner = f"joueur{current_player}"
                             game_state.state = GameState.END
                             change_music(game_state.victory_music)
                             

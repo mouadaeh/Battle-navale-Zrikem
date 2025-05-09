@@ -165,28 +165,26 @@ class GameState:
         return row, col, hit
     
     def restart_game(self):
-        """Reset the game to start a new one"""
-        # Keep the existing AI instance to preserve learning
-        current_ai = self.computer_ai
-        
+        """Reset game state to start a new game"""
         self.state = GameState.MENU
-        self.player_board = Board()
-        self.computer_board = Board()
-        self.current_ship_index = 0
         self.player_turn = True
         self.winner = None
-        self.victory_animation_started = False
-        self.placed_ships = []  # Reset placed ships
-        self.horizontal = True  # Reset ship orientation
+        self.current_ship_index = 0
+        self.horizontal = True
         
-        # Reset ships to be placed
-        self.ships = []
-        for ship_config in SHIPS:
-            self.ships.append({"name": ship_config["name"], "size": ship_config["size"]})
-            
-        # Keep the trained AI but reset its state for the new game
-        self.computer_ai = current_ai
-        self.computer_ai.reset_game_state()
+        self.player_board = Board()  # Créer un nouveau plateau vide
+        
+        # Si on était en mode multijoueur, computer_ai sera None
+        if self.game_mode == GameState.SINGLE_PLAYER and self.computer_ai is not None:
+            self.computer_ai.reset_game_state()
+        elif self.game_mode == GameState.MULTIPLAYER and self.multiplayer is not None:
+            from src.multiplayer import LocalMultiplayer
+            # Reset the multiplayer state
+            self.multiplayer = LocalMultiplayer()
+        
+        # Réinitialiser le drapeau d'animation
+        if hasattr(self, 'victory_animation_started'):
+            self.victory_animation_started = False
     
     def handle_cell_hit(self, cell_value, row, col, cell_size, cell_x, cell_y, screen, boom_image):
         """Handle the event when a cell is hit"""

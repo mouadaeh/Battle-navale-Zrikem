@@ -132,31 +132,47 @@ def draw_ship_selection(screen, game_state, fonts):
             screen.blit(orient_text, (orient_x, orient_y))
             screen.blit(rotate_text, (orient_x, rotate_y))
 
-def draw_game_end(screen, winner, fonts, restart_action):
+def draw_game_end(screen, winner, fonts, restart_function):
     """Draw the end game screen with responsive layout"""
-    screen_width, screen_height = screen.get_width(), screen.get_height()
+    # Fill the screen with a semi-transparent background
+    overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))  # Semi-transparent black background
+    screen.blit(overlay, (0, 0))
     
-    # Fill background
-    screen.fill(BLACK)
-    
-    # Win/lose message
+    # Determine the text to display based on the winner
     if winner == "player":
-        win_text = fonts["large"].render("Vous avez gagné !", True, GREEN)
+        victory_text = "Vous avez gagné!"
+        color = GREEN
+    elif winner == "computer":
+        victory_text = "L'ordinateur a gagné"
+        color = RED
+    elif winner and winner.startswith("joueur"):
+        player_num = winner[6:]  # Extract the number after "joueur"
+        victory_text = f"Joueur {player_num} a gagné!"
+        color = GREEN if player_num == "1" else RED
     else:
-        win_text = fonts["large"].render("L'ordinateur a gagné !", True, RED)
+        victory_text = "Partie terminée"
+        color = WHITE
     
-    # Center message horizontally, position at 40% of screen height
-    message_x = (screen_width - win_text.get_width()) / 2
-    message_y = screen_height * 0.4
-    screen.blit(win_text, (message_x, message_y))
+    # Render the text with a shadow effect
+    victory_large = fonts["large"].render(victory_text, True, color)
+    shadow = fonts["large"].render(victory_text, True, (30, 30, 30))
+    
+    # Center the text with a slight shadow offset
+    text_x = screen.get_width() // 2 - victory_large.get_width() // 2
+    text_y = screen.get_height() // 3
+    
+    # Draw the shadow slightly offset
+    screen.blit(shadow, (text_x + 4, text_y + 4))
+    screen.blit(victory_large, (text_x, text_y))
     
     # Restart button dimensions
-    button_width = min(300, screen_width * 0.25)  # 25% of screen width, max 300px
-    button_height = min(80, screen_height * 0.1)   # 10% of screen height, max 80px
+    button_width = min(300, screen.get_width() * 0.25)  # 25% of screen width, max 300px
+    button_height = min(80, screen.get_height() * 0.1)   # 10% of screen height, max 80px
     
     # Center button horizontally, position at 60% of screen height
-    button_x = (screen_width - button_width) / 2
-    button_y = screen_height * 0.6
+    button_x = (screen.get_width() - button_width) / 2
+    button_y = screen.get_height() * 0.6
     
     # Add restart button
     draw_button(
@@ -169,5 +185,5 @@ def draw_game_end(screen, winner, fonts, restart_action):
         GRAY,
         WHITE,
         fonts["button"],
-        restart_action
+        restart_function
     )
