@@ -281,9 +281,14 @@ def handle_multiplayer_placement():
         screen.blit(countdown, countdown_rect)
         
         # Add privacy message
-        privacy = fonts["small"].render("Passez le contrôle à l'autre joueur", True, WHITE)
+        privacy = fonts["small"].render("Préparez-vous à jouer!", True, WHITE)
         privacy_rect = privacy.get_rect(center=(resolution[0]//2, resolution[1]//2 + 80))
         screen.blit(privacy, privacy_rect)
+        
+        # Vérifier si la transition est terminée et s'il existe un callback à appeler
+        if game_state.multiplayer.transition_timer <= 0 and hasattr(game_state.multiplayer, 'start_game_callback'):
+            game_state.multiplayer.start_game_callback()
+            delattr(game_state.multiplayer, 'start_game_callback')  # Supprimer le callback après utilisation
         
         # Important: Process events here to continue counting down even during transition
         for event in pygame.event.get():
@@ -416,7 +421,19 @@ def handle_multiplayer_placement():
                             
                             # If we're no longer in placement phase, move to game
                             if not game_state.multiplayer.placement_phase:
-                                game_state.state = GameState.GAME
+                                game_state.multiplayer.transition_screen = True
+                                game_state.multiplayer.transition_timer = 180  # 3 secondes à 60 FPS
+                                game_state.multiplayer.transition_message = "La partie va commencer !"
+                                
+                                def start_game_after_transition():
+                                    game_state.state = GameState.GAME
+                                    global message_timer, message_text, click_processed
+                                    message_timer = 0
+                                    message_text = ""
+                                    click_processed = False
+                                    button_cooldown = 60
+                                
+                                game_state.multiplayer.start_game_callback = start_game_after_transition
 
 def handle_multiplayer_game():
     """Handle the multiplayer game phase"""
