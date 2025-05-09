@@ -113,6 +113,14 @@ ship_images = load_ship_images()
 # Initialize effects manager
 effects_manager = EffectsManager()
 
+# Ajouter après l'initialisation de effects_manager (ligne 116 environ)
+def create_hit_effect(self, x, y):
+    """Create a hit effect at the specified position"""
+    self.create_fire_animation(x, y, 40)  # Fixed size for fire effect
+
+# Attacher la méthode à l'instance EffectsManager
+effects_manager.create_hit_effect = create_hit_effect.__get__(effects_manager)
+
 # Game variables
 button_cooldown = 0
 message_timer = 0
@@ -414,45 +422,6 @@ def handle_multiplayer_game():
     """Handle the multiplayer game phase"""
     global message_timer, message_text, message_color, waiting_for_action, button_cooldown, click_processed
     
-    # Handle transition screen if active
-    if game_state.multiplayer.transition_screen:
-        # Important: toujours mettre à jour le compteur de transition
-        game_state.multiplayer.update_transition()
-        
-        # COMPLETELY clear the screen with solid black
-        screen.fill((0, 0, 0))
-        
-        # Create transition overlay
-        overlay = pygame.Surface(resolution, pygame.SRCALPHA)
-        overlay.fill((0, 0, 50, 200))
-        screen.blit(overlay, (0, 0))
-        
-        # Draw transition message
-        msg = fonts["large"].render(game_state.multiplayer.transition_message, True, WHITE)
-        msg_rect = msg.get_rect(center=(resolution[0]//2, resolution[1]//2 - 50))
-        screen.blit(msg, msg_rect)
-        
-        # Draw countdown
-        seconds = game_state.multiplayer.transition_timer // 60 + 1
-        countdown = fonts["medium"].render(f"Changement dans {seconds}...", True, WHITE)
-        countdown_rect = countdown.get_rect(center=(resolution[0]//2, resolution[1]//2 + 30))
-        screen.blit(countdown, countdown_rect)
-        
-        # Add privacy message
-        privacy = fonts["small"].render("Passez le contrôle à l'autre joueur", True, WHITE)
-        privacy_rect = privacy.get_rect(center=(resolution[0]//2, resolution[1]//2 + 80))
-        screen.blit(privacy, privacy_rect)
-        
-        # Important: traiter les événements pour que le décompte puisse continuer
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-        
-        # Skip the rest of the function so no boards are drawn during transition
-        return
-    
-    # Continue with normal game once transition is over...
     # Draw the gameplay background
     if "gameplay_background" in assets:
         screen.blit(assets["gameplay_background"], (0, 0))
@@ -462,99 +431,137 @@ def handle_multiplayer_game():
     current_board = game_state.multiplayer.get_current_board()
     opponent_board = game_state.multiplayer.get_opponent_board()
     
-    # Draw title
-    title = fonts["large"].render(f"Joueur {current_player}", True, WHITE)
-    screen.blit(title, (resolution[0]//2 - title.get_width()//2, 20))
+    # Draw title showing both players, with current player highlighted
+    player1_color = GREEN if current_player == 1 else WHITE
+    player2_color = RED if current_player == 2 else WHITE
     
-    # Draw player's board with ships
-    player_x, player_y = draw_grid(screen, current_board, fonts, assets, reveal=True, 
-                                  is_player_grid=True, position="left")
+    # Draw player titles
+    title1 = fonts["medium"].render("Joueur 1", True, player1_color)
+    title2 = fonts["medium"].render("Joueur 2", True, player2_color)
     
-    # Draw opponent's board (hidden ships)
-    comp_x, comp_y = draw_grid(screen, opponent_board, fonts, assets, reveal=False, 
-                              is_player_grid=False, position="right")
+    # Calculate positions for titles (left and right boards)
+    player1_title_x = resolution[0] // 4 - title1.get_width() // 2
+    player2_title_x = (resolution[0] * 3) // 4 - title2.get_width() // 2
     
-    # Draw ships on player's board
-    cell_size = current_board.width / len(current_board.grid[0])
-    ships_list = game_state.multiplayer.player1_ships if current_player == 1 else game_state.multiplayer.player2_ships
+    # Draw titles
+    screen.blit(title1, (player1_title_x, 10))
+    screen.blit(title2, (player2_title_x, 10))
     
-    for ship in ships_list:
+    # Draw main turn indicator
+    # turn_text = fonts["large"].render(f"Tour du Joueur {current_player}", True, GREEN if current_player == 1 else RED)
+    # screen.blit(turn_text, (resolution[0]//2 - turn_text.get_width()//2, 60))
+    
+    # Draw both player boards side by side (always in the same position)
+    player1_x, player1_y = draw_grid(screen, game_state.multiplayer.player1_board, fonts, assets, 
+                                    reveal=True, is_player_grid=True, position="left")
+    player2_x, player2_y = draw_grid(screen, game_state.multiplayer.player2_board, fonts, assets, 
+                                    reveal=True, is_player_grid=False, position="right")
+    
+    # Draw ships on player 1's board
+    cell_size_p1 = game_state.multiplayer.player1_board.width / len(game_state.multiplayer.player1_board.grid[0])
+    for ship in game_state.multiplayer.player1_ships:
         ship_image = ship_images.get(ship['name'].lower())
         if ship_image:
-            scaled_image = pygame.transform.scale(ship_image, (int(cell_size * ship['size']), int(cell_size)))
+            scaled_image = pygame.transform.scale(ship_image, (int(cell_size_p1 * ship['size']), int(cell_size_p1)))
             if ship['horizontal']:
-                screen.blit(scaled_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
+                screen.blit(scaled_image, (player1_x + ship['col'] * cell_size_p1, player1_y + ship['row'] * cell_size_p1))
             else:
                 rotated_image = pygame.transform.rotate(scaled_image, 90)
-                screen.blit(rotated_image, (player_x + ship['col'] * cell_size, player_y + ship['row'] * cell_size))
+                screen.blit(rotated_image, (player1_x + ship['col'] * cell_size_p1, player1_y + ship['row'] * cell_size_p1))
     
-    # Render hits and misses on player's board
-    for row in range(len(current_board.grid)):
-        for col in range(len(current_board.grid[row])):
-            cell_value = current_board.view[row][col]
-            cell_x = player_x + col * cell_size
-            cell_y = player_y + row * cell_size
-
-            if cell_value == 'X':  # Hit - shows hits from opponent
-                effects_manager.create_fire_animation(cell_x + cell_size/2, cell_y + cell_size/2, int(cell_size)) 
-            elif cell_value == 'O':  # Miss - shows misses from opponent
-                effects_manager.create_water_animation(cell_x, cell_y, int(cell_size))
+    # Draw ships on player 2's board
+    cell_size_p2 = game_state.multiplayer.player2_board.width / len(game_state.multiplayer.player2_board.grid[0])
+    for ship in game_state.multiplayer.player2_ships:
+        ship_image = ship_images.get(ship['name'].lower())
+        if ship_image:
+            scaled_image = pygame.transform.scale(ship_image, (int(cell_size_p2 * ship['size']), int(cell_size_p2)))
+            if ship['horizontal']:
+                screen.blit(scaled_image, (player2_x + ship['col'] * cell_size_p2, player2_y + ship['row'] * cell_size_p2))
+            else:
+                rotated_image = pygame.transform.rotate(scaled_image, 90)
+                screen.blit(rotated_image, (player2_x + ship['col'] * cell_size_p2, player2_y + ship['row'] * cell_size_p2))
     
-    # Render hits and misses on opponent's board
-    for row in range(len(opponent_board.grid)):
-        for col in range(len(opponent_board.grid[row])):
-            cell_value = opponent_board.view[row][col]
-            cell_x = comp_x + col * cell_size
-            cell_y = comp_y + row * cell_size
+    # # Clear existing animations to prevent buildup
+    # effects_manager.fire_animations.clear()
+    # if hasattr(effects_manager, 'water_animations'):
+    #     effects_manager.water_animations.clear()
+    
+    # Render hits and misses on both boards
+    for row in range(len(game_state.multiplayer.player1_board.grid)):
+        for col in range(len(game_state.multiplayer.player1_board.grid[row])):
+            cell_value = game_state.multiplayer.player1_board.view[row][col]
+            cell_x = player1_x + col * cell_size_p1
+            cell_y = player1_y + row * cell_size_p1
             
-            if cell_value == 'X':  # Hit - shows hits BY current player
-                effects_manager.create_fire_animation(cell_x + cell_size/2, cell_y + cell_size/2, int(cell_size))
-            elif cell_value == 'O':  # Miss - shows misses BY current player
-                effects_manager.create_water_animation(cell_x, cell_y, int(cell_size))
+            if cell_value == 'X':  # Case touchée
+                # Vérifier si une animation n'existe pas déjà à cette position
+                if not any(fire.x == cell_x and fire.y == cell_y for fire in effects_manager.fire_animations):
+                    effects_manager.create_fire_animation(cell_x, cell_y, int(cell_size_p1))
+            elif cell_value == 'O':  # Case manquée
+                # Vérifier si une animation d'eau n'existe pas déjà
+                if not hasattr(effects_manager, 'water_animations') or not any(water.x == cell_x and water.y == cell_y for water in effects_manager.water_animations):
+                    effects_manager.create_water_animation(cell_x, cell_y, int(cell_size_p1))
+    
+    for row in range(len(game_state.multiplayer.player2_board.grid)):
+        for col in range(len(game_state.multiplayer.player2_board.grid[row])):
+            cell_value = game_state.multiplayer.player2_board.view[row][col]
+            cell_x = player2_x + col * cell_size_p2
+            cell_y = player2_y + row * cell_size_p2
+            
+            if cell_value == 'X':  # Case touchée
+                # Vérifier si une animation n'existe pas déjà à cette position
+                if not any(fire.x == cell_x and fire.y == cell_y for fire in effects_manager.fire_animations):
+                    effects_manager.create_fire_animation(cell_x, cell_y, int(cell_size_p2))
+            elif cell_value == 'O':  # Case manquée
+                # Vérifier si une animation d'eau n'existe pas déjà
+                if not hasattr(effects_manager, 'water_animations') or not any(water.x == cell_x and water.y == cell_y for water in effects_manager.water_animations):
+                    effects_manager.create_water_animation(cell_x, cell_y, int(cell_size_p2))
     
     # Reset click_processed flag
     click_processed = False
     
-    # If we're in a cooldown period, show message but don't process game logic
-    if button_cooldown > 0:
-        message = fonts["small"].render(message_text, True, message_color)
-        screen.blit(message, (resolution[0]//2 - message.get_width()//2, 
-                             max(player_y, comp_y) + current_board.height + 30))
-        return
+    # Draw attack instructions
+    target_board_x = player2_x if current_player == 1 else player1_x
+    target_board_y = player2_y if current_player == 1 else player1_y
+    target_board = game_state.multiplayer.player2_board if current_player == 1 else game_state.multiplayer.player1_board
+    cell_size = cell_size_p2 if current_player == 1 else cell_size_p1
     
-    # Draw instructions
-    instructions = fonts["small"].render("Cliquez sur la grille adverse pour attaquer", True, WHITE)
-    screen.blit(instructions, (resolution[0]//2 - instructions.get_width()//2, comp_y - 40))
+    instructions = fonts["small"].render("Cliquez ici pour attaquer", True, WHITE)
+    instructions_x = target_board_x + (target_board.width // 2) - (instructions.get_width() // 2)
+    screen.blit(instructions, (instructions_x, target_board_y - 25))
     
-    # If a message is being displayed
+    # Handle messages
     if message_timer > 0:
         message = fonts["small"].render(message_text, True, message_color)
         screen.blit(message, (resolution[0]//2 - message.get_width()//2, 
-                             max(player_y, comp_y) + current_board.height + 30))
+                             max(player1_y, player2_y) + game_state.multiplayer.player1_board.height + 30))
         return
     
     # Process player's attack
     mouse_pressed = pygame.mouse.get_pressed()
     mouse_pos = pygame.mouse.get_pos()
     
+    target_x = player2_x if current_player == 1 else player1_x
+    target_y = player2_y if current_player == 1 else player1_y
+    
     if mouse_pressed[0] and not click_processed:
-        if comp_x <= mouse_pos[0] < comp_x + opponent_board.width and comp_y <= mouse_pos[1] < comp_y + opponent_board.height:
-            col = int((mouse_pos[0] - comp_x) // cell_size)
-            row = int((mouse_pos[1] - comp_y) // cell_size)
+        if target_x <= mouse_pos[0] < target_x + target_board.width and target_y <= mouse_pos[1] < target_y + target_board.height:
+            col = int((mouse_pos[0] - target_x) // cell_size)
+            row = int((mouse_pos[1] - target_y) // cell_size)
             
-            if opponent_board.view[row][col] == '.':
+            if target_board.view[row][col] == '.':
                 click_processed = True
                 
                 # Process attack
                 hit, victory = game_state.multiplayer.attack(row, col)
                 
                 # Add visual effect
-                effect_x = comp_x + col * cell_size + cell_size / 2
-                effect_y = comp_y + row * cell_size + cell_size / 2
+                effect_x = target_x + col * cell_size + cell_size / 2
+                effect_y = target_y + row * cell_size + cell_size / 2
                 
                 if hit:
                     effects_manager.create_hit_effect(effect_x, effect_y)
-                    message_text = "Touché! Vous rejouez."
+                    message_text = f"Touché! Le Joueur {current_player} rejouera."
                     message_color = WHITE
                     message_timer = 75
                     
@@ -562,44 +569,60 @@ def handle_multiplayer_game():
                     if victory:
                         game_state.winner = f"player{current_player}"
                         game_state.state = GameState.END
+                        # Play victory music
+                        change_music(game_state.victory_music)
+                        
+                        # Add victory animation
+                        if not hasattr(game_state, 'victory_animation_started') or not game_state.victory_animation_started:
+                            effects_manager.clear_fire_animations()
+                            effects_manager.create_victory_animation(resolution[0], resolution[1])
+                            game_state.victory_animation_started = True
                 else:
-                    effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size))
-                    message_text = "Manqué! Au tour de votre adversaire."
+                    effects_manager.create_water_animation(target_x + col * cell_size, target_y + row * cell_size, int(cell_size))
+                    next_player = 2 if current_player == 1 else 1
+                    message_text = f"Manqué! Au tour du Joueur {next_player}."
                     message_color = WHITE
                     message_timer = 90
     
-    # Also check for pygame events to catch any missed clicks
+    # Also handle click events
     for event in pygame.event.get([pygame.MOUSEBUTTONDOWN]):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not click_processed:
             mouse_pos = event.pos
             
-            if comp_x <= mouse_pos[0] < comp_x + opponent_board.width and comp_y <= mouse_pos[1] < comp_y + opponent_board.height:
-                col = int((mouse_pos[0] - comp_x) // cell_size)
-                row = int((mouse_pos[1] - comp_y) // cell_size)
+            if target_x <= mouse_pos[0] < target_x + target_board.width and target_y <= mouse_pos[1] < target_y + target_board.height:
+                col = int((mouse_pos[0] - target_x) // cell_size)
+                row = int((mouse_pos[1] - target_y) // cell_size)
                 
-                if opponent_board.view[row][col] == '.':
+                if target_board.view[row][col] == '.':
                     click_processed = True
                     
                     # Process attack
                     hit, victory = game_state.multiplayer.attack(row, col)
                     
                     # Add visual effect
-                    effect_x = comp_x + col * cell_size + cell_size / 2
-                    effect_y = comp_y + row * cell_size + cell_size / 2
+                    effect_x = target_x + col * cell_size + cell_size / 2
+                    effect_y = target_y + row * cell_size + cell_size / 2
                     
                     if hit:
                         effects_manager.create_hit_effect(effect_x, effect_y)
-                        message_text = "Touché! Vous rejouez."
+                        message_text = f"Touché! Le Joueur {current_player} rejouera."
                         message_color = WHITE
                         message_timer = 75
                         
-                        # Check for victory
                         if victory:
                             game_state.winner = f"player{current_player}"
                             game_state.state = GameState.END
+                            change_music(game_state.victory_music)
+                            
+                            # Add victory animation
+                            if not hasattr(game_state, 'victory_animation_started') or not game_state.victory_animation_started:
+                                effects_manager.clear_fire_animations()
+                                effects_manager.create_victory_animation(resolution[0], resolution[1])
+                                game_state.victory_animation_started = True
                     else:
-                        effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size))
-                        message_text = "Manqué! Au tour de votre adversaire."
+                        effects_manager.create_water_animation(target_x + col * cell_size, target_y + row * cell_size, int(cell_size))
+                        next_player = 2 if current_player == 1 else 1
+                        message_text = f"Manqué! Au tour du Joueur {next_player}."
                         message_color = WHITE
                         message_timer = 90
 
@@ -721,14 +744,7 @@ def handle_game():
                         effect_y = comp_y + row * cell_size + cell_size / 2
                         
                         if hit:
-                            effects_manager.create_hit_effect(effect_x, effect_y)
-                            # effects_manager.create_animated_message(
-                            #     "TOUCHÉ!", RED, 
-                            #     comp_x + game_state.computer_board.width // 2,
-                            #     comp_y + game_state.computer_board.height + 45,
-                            #     duration=90
-                            # )
-                            
+                            effects_manager.create_hit_effect(effect_x, effect_y) 
                             message_text = "Vous rejouez"
                             message_color = WHITE
                             message_timer = 75
@@ -743,14 +759,7 @@ def handle_game():
                                 change_music(game_state.victory_music)
                                 return
                         else:
-                            effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size))
-                            # effects_manager.create_animated_message(
-                            #     "MANQUÉ!", WHITE, 
-                            #     comp_x + game_state.computer_board.width // 2,
-                            #     comp_y + game_state.computer_board.height + 45,
-                            #     duration=90
-                            # )
-                            
+                            effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size)) 
                             message_text = "Manqué! Au tour de votre adversaire."
                             message_color = WHITE
                             message_timer = 90
@@ -781,13 +790,6 @@ def handle_game():
                             
                             if hit:
                                 effects_manager.create_hit_effect(effect_x, effect_y)
-                                # effects_manager.create_animated_message(
-                                #     "TOUCHÉ!", RED, 
-                                #     comp_x + game_state.computer_board.width // 2,
-                                #     comp_y + game_state.computer_board.height + 45,
-                                #     duration=90
-                                # )
-                                
                                 message_text = "Vous rejouez"
                                 message_color = WHITE
                                 message_timer = 75
@@ -803,13 +805,6 @@ def handle_game():
                                     return
                             else:
                                 effects_manager.create_water_animation(comp_x + col * cell_size, comp_y + row * cell_size, int(cell_size))
-                                # effects_manager.create_animated_message(
-                                #     "MANQUÉ!", WHITE, 
-                                #     comp_x + game_state.computer_board.width // 2,
-                                #     comp_y + game_state.computer_board.height + 45,
-                                #     duration=90
-                                # )
-                                
                                 message_text = "Manqué! Au tour de votre adversaire."
                                 message_color = WHITE
                                 message_timer = 90
@@ -859,28 +854,12 @@ def handle_game():
                     
                     if hit:
                         effects_manager.create_hit_effect(effect_x, effect_y)
-                        # Adjust position of hit message (moved down by 5px)
-                        # effects_manager.create_animated_message(
-                        #     "TOUCHÉ!", RED, 
-                        #     player_x + game_state.player_board.width // 2,
-                        #     player_y + game_state.player_board.height + 45,  # Changed from 40 to 45
-                        #     duration=90
-                        # )
-                        
                         message_text = "L'ordinateur rejoue"
                         message_color = WHITE
                         message_timer = 90
                         
                     else:
                         effects_manager.create_water_animation(player_x + col * cell_size, player_y + row * cell_size, int(cell_size))
-                        # Adjust position of miss message (moved down by 5px)
-                        # effects_manager.create_animated_message(
-                        #     "MANQUÉ!", WHITE, 
-                        #     player_x + game_state.player_board.width // 2,
-                        #     player_y + game_state.player_board.height + 45,  # Changed from 40 to 45
-                        #     duration=90
-                        # )
-                        
                         message_text = "Votre tour"
                         message_color = WHITE
                         message_timer = 75
@@ -892,12 +871,6 @@ def handle_game():
                 message_color = RED
                 message_timer = 90
                 game_state.player_turn = True
-
-    # Multiplayer mode (not fully implemented)
-    else:
-        # Placeholder UI for multiplayer
-        multiplayer_text = fonts["large"].render("Mode multijoueur pas encore implémenté", True, WHITE)
-        screen.blit(multiplayer_text, (resolution[0] // 2 - multiplayer_text.get_width() // 2, resolution[1] // 2))
 
 # Main game loop
 running = True
