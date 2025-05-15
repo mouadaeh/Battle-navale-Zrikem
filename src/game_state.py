@@ -172,19 +172,29 @@ class GameState:
         self.current_ship_index = 0
         self.horizontal = True
         
-        self.player_board = Board()  # Créer un nouveau plateau vide
+        # Réinitialiser le plateau du joueur
+        self.player_board = Board()
+        self.computer_board = Board() if hasattr(self, 'computer_board') else None
+        
+        # Réinitialiser les listes de bateaux placés
+        self.placed_ships = []  # Pour le mode solo
+        
+        # Réinitialiser les animations de victoire
+        if hasattr(self, 'victory_animation_started'):
+            self.victory_animation_started = False
         
         # Si on était en mode multijoueur, computer_ai sera None
         if self.game_mode == GameState.SINGLE_PLAYER and self.computer_ai is not None:
             self.computer_ai.reset_game_state()
-        elif self.game_mode == GameState.MULTIPLAYER and self.multiplayer is not None:
+        elif self.game_mode == GameState.MULTIPLAYER and hasattr(self, 'multiplayer'):
+            # Réinitialiser complètement l'état du multijoueur
             from src.multiplayer import LocalMultiplayer
-            # Reset the multiplayer state
             self.multiplayer = LocalMultiplayer()
-        
-        # Réinitialiser le drapeau d'animation
-        if hasattr(self, 'victory_animation_started'):
-            self.victory_animation_started = False
+            # Réinitialiser les listes de bateaux du multijoueur
+            if hasattr(self.multiplayer, 'player1_ships'):
+                self.multiplayer.player1_ships = []
+            if hasattr(self.multiplayer, 'player2_ships'):
+                self.multiplayer.player2_ships = []
     
     def handle_cell_hit(self, cell_value, row, col, cell_size, cell_x, cell_y, screen, boom_image):
         """Handle the event when a cell is hit"""

@@ -1,1 +1,1 @@
-player
+    if mute_button_rect.collidepoint(event.pos):
