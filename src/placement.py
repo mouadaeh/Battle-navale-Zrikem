@@ -4,8 +4,12 @@ from src.game_state import GameState
 from src.utils.constants import WHITE
 
 def handle_placement(screen, game_state, fonts, assets, ship_images, player_x=None, player_y=None, 
-                    button_cooldown=0, message_timer=0, message_text="", message_color=WHITE):
+                    button_cooldown=0, message_timer=0, message_text="", message_color=WHITE,
+                    events=None):  # Ajoutez ce paramètre
     """Handle the ship placement phase for single player"""
+    
+    # Utilisez les événements passés en paramètre ou une liste vide par défaut
+    events = events or []
     
     # Draw the gameplay background first
     if "gameplay_background" in assets:
@@ -104,7 +108,7 @@ def handle_placement(screen, game_state, fonts, assets, ship_images, player_x=No
                     screen.blit(overlay, (player_x + col * cell_size, player_y + row * cell_size))
     
     # Handle mouse clicks for placement
-    for event in pygame.event.get():
+    for event in events:  # Utilisez les événements passés en paramètre
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
@@ -134,8 +138,11 @@ def handle_placement(screen, game_state, fonts, assets, ship_images, player_x=No
 
 def handle_multiplayer_placement(screen, game_state, fonts, assets, ship_images, resolution, 
                                 button_cooldown=0, message_timer=0, message_text="", message_color=WHITE, 
-                                click_processed=False):
+                                click_processed=False, events=None):  # Ajoutez ce paramètre
     """Handle ship placement for multiplayer"""
+    
+    # Utilisez les événements passés en paramètre ou une liste vide par défaut
+    events = events or []
     
     # Important: Always update transition timer here
     if game_state.multiplayer.transition_screen:
@@ -171,7 +178,7 @@ def handle_multiplayer_placement(screen, game_state, fonts, assets, ship_images,
             delattr(game_state.multiplayer, 'start_game_callback')  # Supprimer le callback après utilisation
         
         # Important: Process events here to continue counting down even during transition
-        for event in pygame.event.get():
+        for event in events:  # Utilisez les événements passés en paramètre
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -279,7 +286,7 @@ def handle_multiplayer_placement(screen, game_state, fonts, assets, ship_images,
                     screen.blit(overlay, (player_x + col * cell_size, player_y + row * cell_size))
     
     # Handle mouse clicks for placement
-    for event in pygame.event.get():
+    for event in events:  # Utilisez les événements passés en paramètre
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()

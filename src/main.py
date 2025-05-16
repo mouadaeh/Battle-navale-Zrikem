@@ -619,9 +619,8 @@ while running:
             game_state.state = GameState.MENU
             effects_manager.clear_fire_animations()
             if hasattr(effects_manager, 'clear_water_animations'):
-                    effects_manager.clear_water_animations()
+                effects_manager.clear_water_animations()
             change_music(game_state.menu_music)
-
         
         # Dessiner l'écran de pause par-dessus tout
         draw_pause_screen(screen, fonts, resolution, resume_game, quit_to_menu)
@@ -690,7 +689,8 @@ while running:
                     button_cooldown=button_cooldown,
                     message_timer=message_timer,
                     message_text=message_text,
-                    message_color=message_color
+                    message_color=message_color,
+                    events = events
                 )
             else : # Multiplayer mode
                 message_timer, message_text, message_color, click_processed = handle_multiplayer_placement(
@@ -699,7 +699,8 @@ while running:
                     message_timer=message_timer,
                     message_text=message_text,
                     message_color=message_color,
-                    click_processed=click_processed
+                    click_processed=click_processed,
+                    events = events
                 )
             recently_changed_state = False
         elif game_state.state == GameState.GAME:

@@ -1,1 +1,1 @@
-    if mute_button_rect.collidepoint(event.pos):
+while ru
