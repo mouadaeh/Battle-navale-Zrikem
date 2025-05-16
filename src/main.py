@@ -598,6 +598,12 @@ while running:
             if hasattr(effects_manager, 'clear_water_animations'):
                 effects_manager.clear_water_animations()
             change_music(game_state.menu_music)
+
+            if hasattr(game_state, 'multiplayer'):
+                if hasattr(game_state.multiplayer, 'player1_ships'):
+                    game_state.multiplayer.player1_ships = []
+                if hasattr(game_state.multiplayer, 'player2_ships'):
+                    game_state.multiplayer.player2_ships = []
         
         # Dessiner l'écran de pause par-dessus tout
         draw_pause_screen(screen, fonts, resolution, resume_game, quit_to_menu)
