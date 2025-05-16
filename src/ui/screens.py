@@ -187,3 +187,57 @@ def draw_game_end(screen, winner, fonts, restart_function):
         fonts["button"],
         restart_function
     )
+
+def draw_pause_screen(screen, fonts, resolution, resume_action, quit_action):
+    """Affiche l'écran de pause avec un fond personnalisé et un style d'écriture."""
+    # Dessiner un fond opaque (noir solide)
+    overlay = pygame.Surface((resolution[0], resolution[1]))
+    overlay.fill((0, 0, 0))  # Noir solide
+    screen.blit(overlay, (0, 0))
+
+    # Texte principal "Pause"
+    pause_text = fonts["large"].render("Pause", True, (255, 255, 255))  # Blanc
+    pause_bg_rect = pygame.Rect(
+        resolution[0] // 2 - pause_text.get_width() // 2 - 20,
+        resolution[1] // 3 - 70,
+        pause_text.get_width() + 40,
+        pause_text.get_height() + 20
+    )
+    pygame.draw.rect(screen, (50, 50, 50), pause_bg_rect)  # Fond gris foncé
+    pygame.draw.rect(screen, (255, 255, 255), pause_bg_rect, 2)  # Bordure blanche
+    screen.blit(pause_text, (pause_bg_rect.x + 20, pause_bg_rect.y + 10))
+
+    # Boutons
+    button_width = 300
+    button_height = 60
+    button_margin = 20
+
+    # Bouton "Reprendre"
+    resume_y = resolution[1] // 2
+    draw_button(
+        screen,
+        "Reprendre",
+        resolution[0] // 2 - button_width // 2,
+        resume_y,
+        button_width,
+        button_height,
+        GRAY,
+        WHITE,
+        fonts["button"],
+        resume_action
+    )
+
+    # Bouton "Quitter"
+    quit_y = resume_y + button_height + button_margin
+    draw_button(
+        screen,
+        "Quitter",
+        resolution[0] // 2 - button_width // 2,
+        quit_y,
+        button_width,
+        button_height,
+        GRAY,
+        WHITE,
+        fonts["button"],
+        quit_action
+    )

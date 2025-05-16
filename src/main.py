@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Import modules
 from src.game_state import GameState
 from src.animations import EffectsManager
-from src.ui.screens import draw_main_menu, draw_ship_selection, draw_game_end
+from src.ui.screens import draw_main_menu, draw_ship_selection, draw_game_end, draw_pause_screen
 from src.ui.grid import draw_grid
 from src.utils.constants import WHITE, GRAY, GREEN, RED, FPS
 from src.utils.helpers import initialize_fonts, load_assets
@@ -571,118 +571,159 @@ clock = pygame.time.Clock()
 recently_changed_state = False
 previous_state = None
 
+# Ajoutez ces variables globales
+paused = False
+previous_state = None
+
 while running:
-    # Only handle quit events in the main loop
-    for event in pygame.event.get([pygame.QUIT]):
+    events = pygame.event.get()
+    
+    # Handle events
+    for event in events:
         if event.type == pygame.QUIT:
             running = False
+        
+        # Gestion de la touche P pour la pause
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_p:
+                if game_state.state in [GameState.GAME, GameState.PLACEMENT]:
+                    paused = not paused
+                    if paused:
+                        previous_state = game_state.state
+                        pygame.mixer.music.pause()  # Mettre la musique en pause
+                    else:
+                        if not music_muted:
+                            pygame.mixer.music.unpause()  # Reprendre la musique si pas en mode muet
+        
+        # Handle mute button clicks
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if mute_button_rect.collidepoint(event.pos):
+                toggle_music()
     
     # Clear screen
     screen.fill(GRAY)
     
-    # Update timers
-    if button_cooldown > 0:
-        button_cooldown -= 1
-    
-    if message_timer > 0:
-        message_timer -= 1
-    
-    if game_state.rotation_cooldown > 0:
-        game_state.rotation_cooldown -= 1
-    
-    # Vérifier si l'état a changé
-    if previous_state != game_state.state:
-        previous_state = game_state.state
-        recently_changed_state = True
-        
-        # Save AI model when transitioning to END state
-        if game_state.state == GameState.END and game_state.computer_ai:
-            try:
-                print("Saving AI model at game end...")
-                game_state.computer_ai.save_model()
-            except Exception as e:
-                print(f"Error saving AI model: {e}")
-        
-        # Clear fire animations when game ends or restarts
-        if game_state.state == GameState.END or (game_state.state == GameState.MENU and previous_state == GameState.END):
+    # Si la partie est en pause, afficher l'écran de pause
+    if paused:
+        # Fonction pour reprendre le jeu
+        def resume_game():
+            global paused
+            paused = False
+            if not music_muted:
+                pygame.mixer.music.unpause()
+
+        # Fonction pour quitter le jeu et retourner au menu
+        def quit_to_menu():
+            global paused
+            paused = False
+            game_state.state = GameState.MENU
             effects_manager.clear_fire_animations()
             if hasattr(effects_manager, 'clear_water_animations'):
-                effects_manager.clear_water_animations()
-        
-        # Change music based on state
-        if game_state.state == GameState.MENU:
+                    effects_manager.clear_water_animations()
             change_music(game_state.menu_music)
-        elif game_state.state in [GameState.PLACEMENT, GameState.GAME]:
-            change_music(game_state.game_music)
+
         
-        # Force a longer cooldown when changing to placement state
-        if game_state.state == GameState.PLACEMENT:
-            button_cooldown = 120
-            game_state.player_board = Board()
-            game_state.current_ship_index = 0
-        else:
-            button_cooldown = 60
+        # Dessiner l'écran de pause par-dessus tout
+        draw_pause_screen(screen, fonts, resolution, resume_game, quit_to_menu)
+    else:
+        # Update timers
+        if button_cooldown > 0:
+            button_cooldown -= 1
         
-        # Reset message when changing states to avoid old messages carrying over
-        if game_state.state == GameState.GAME:
-            message_text = ""
-            message_timer = 0
-            waiting_for_action = False
-    
-    # Handle game state
-    if game_state.state == GameState.MENU:
-        # Transmet le statut de changement d'état récent à la fonction du menu
-        result = draw_main_menu(screen, game_state, fonts, background, button_cooldown)
-        # Si on a appuyé sur start et qu'on change d'état, réinitialiser la variable
-        if result and recently_changed_state == False:
+        if message_timer > 0:
+            message_timer -= 1
+        
+        if game_state.rotation_cooldown > 0:
+            game_state.rotation_cooldown -= 1
+            
+        # Regular game state handling (menu, placement, game, etc.)
+        # Vérifier si l'état a changé
+        if previous_state != game_state.state:
+            previous_state = game_state.state
             recently_changed_state = True
-    elif game_state.state == GameState.PLACEMENT:
-        if game_state.game_mode == GameState.SINGLE_PLAYER:
-            message_timer, message_text, message_color = handle_placement(
-                screen, game_state, fonts, assets, ship_images, 
-                button_cooldown=button_cooldown,
-                message_timer=message_timer,
-                message_text=message_text,
-                message_color=message_color
-            )
-        else:  # Multiplayer mode
-            message_timer, message_text, message_color, click_processed = handle_multiplayer_placement(
-                screen, game_state, fonts, assets, ship_images, resolution,
-                button_cooldown=button_cooldown,
-                message_timer=message_timer,
-                message_text=message_text,
-                message_color=message_color,
-                click_processed=click_processed
-            )
-        recently_changed_state = False
-    elif game_state.state == GameState.GAME:
-        if game_state.game_mode == GameState.SINGLE_PLAYER:
-            handle_game()
-        else:  # Multiplayer mode
-            handle_multiplayer_game()
-        recently_changed_state = False
-    elif game_state.state == GameState.END:
-        draw_game_end(screen, game_state.winner, fonts, game_state.restart_game)
-        recently_changed_state = False
+            
+            # Save AI model when transitioning to END state
+            if game_state.state == GameState.END and game_state.computer_ai:
+                try:
+                    print("Saving AI model at game end...")
+                    game_state.computer_ai.save_model()
+                except Exception as e:
+                    print(f"Error saving AI model: {e}")
+            
+            # Clear fire animations when game ends or restarts
+            if game_state.state == GameState.END or (game_state.state == GameState.MENU and previous_state == GameState.END):
+                effects_manager.clear_fire_animations()
+                if hasattr(effects_manager, 'clear_water_animations'):
+                    effects_manager.clear_water_animations()
+            
+            # Change music based on state
+            if game_state.state == GameState.MENU:
+                change_music(game_state.menu_music)
+            elif game_state.state in [GameState.PLACEMENT, GameState.GAME]:
+                change_music(game_state.game_music)
+            
+            # Force a longer cooldown when changing to placement state
+            if game_state.state == GameState.PLACEMENT:
+                button_cooldown = 120
+                game_state.player_board = Board()
+                game_state.current_ship_index = 0
+            else:
+                button_cooldown = 60
+            
+            # Reset message when changing states to avoid old messages carrying over
+            if game_state.state == GameState.GAME:
+                message_text = ""
+                message_timer = 0
+                waiting_for_action = False
+        
+        # Handle game state
+        if game_state.state == GameState.MENU:
+            # Transmet le statut de changement d'état récent à la fonction du menu
+            result = draw_main_menu(screen, game_state, fonts, background, button_cooldown)
+            # Si on a appuyé sur start et qu'on change d'état, réinitialiser la variable
+            if result and recently_changed_state == False:
+                recently_changed_state = True
+        elif game_state.state == GameState.PLACEMENT:
+            if game_state.game_mode == GameState.SINGLE_PLAYER:
+                message_timer, message_text, message_color = handle_placement(
+                    screen, game_state, fonts, assets, ship_images, 
+                    button_cooldown=button_cooldown,
+                    message_timer=message_timer,
+                    message_text=message_text,
+                    message_color=message_color
+                )
+            else : # Multiplayer mode
+                message_timer, message_text, message_color, click_processed = handle_multiplayer_placement(
+                    screen, game_state, fonts, assets, ship_images, resolution,
+                    button_cooldown=button_cooldown,
+                    message_timer=message_timer,
+                    message_text=message_text,
+                    message_color=message_color,
+                    click_processed=click_processed
+                )
+            recently_changed_state = False
+        elif game_state.state == GameState.GAME:
+            if game_state.game_mode == GameState.SINGLE_PLAYER:
+                handle_game()
+            else:  # Multiplayer mode
+                handle_multiplayer_game()
+            recently_changed_state = False
+        elif game_state.state == GameState.END:
+            draw_game_end(screen, game_state.winner, fonts, game_state.restart_game)
+            recently_changed_state = False
+        
+        # Update effects
+        effects_manager.update_effects(screen)
+        effects_manager.update_animated_messages(screen)
+        if game_state.winner is not None and game_state.victory_animation_started:
+            if len(effects_manager.victory_particles) > 0:
+                effects_manager.update_victory_animation(screen)
     
-    # Update effects
-    effects_manager.update_effects(screen)
-    effects_manager.update_animated_messages(screen)
-    if game_state.winner is not None and game_state.victory_animation_started:
-        if len(effects_manager.victory_particles) > 0:  # Ne met à jour que s'il reste des particules
-            effects_manager.update_victory_animation(screen)
-    
-    # Draw mute button
+    # Draw mute button (qu'on soit en pause ou non)
     pygame.draw.rect(screen, WHITE if not music_muted else RED, mute_button_rect)
     mute_text = fonts["small"].render("ON" if not music_muted else "OFF", True, GRAY)
     text_rect = mute_text.get_rect(center=mute_button_rect.center)
     screen.blit(mute_text, text_rect)
-
-    # Handle mute button clicks
-    for event in pygame.event.get([pygame.MOUSEBUTTONDOWN]):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if mute_button_rect.collidepoint(event.pos):
-                toggle_music()
     
     pygame.display.flip()
     clock.tick(FPS)
