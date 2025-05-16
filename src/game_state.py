@@ -178,6 +178,11 @@ class GameState:
         
         # Réinitialiser les listes de bateaux placés
         self.placed_ships = []  # Pour le mode solo
+
+        if hasattr(self, "multiplayer"):
+            self.multiplayer.player1_ships = []
+            self.multiplayer.player2_ships = []
+            self.multiplayer.current_player = 1
         
         # Réinitialiser les animations de victoire
         if hasattr(self, 'victory_animation_started'):

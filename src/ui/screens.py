@@ -1,5 +1,6 @@
 import pygame
 import sys
+import os
 from src.utils.constants import WHITE, GRAY, BLACK, GREEN, RED
 from src.ui.buttons import draw_button
 
@@ -133,48 +134,47 @@ def draw_ship_selection(screen, game_state, fonts):
             screen.blit(rotate_text, (orient_x, rotate_y))
 
 def draw_game_end(screen, winner, fonts, restart_function):
-    """Draw the end game screen with responsive layout"""
+    """Draw the end game screen with responsive layout and victory/defeat images"""
     # Fill the screen with a semi-transparent background
     overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 180))  # Semi-transparent black background
     screen.blit(overlay, (0, 0))
-    
-    # Determine the text to display based on the winner
-    if winner == "player":
-        victory_text = "Vous avez gagné!"
-        color = GREEN
-    elif winner == "computer":
-        victory_text = "L'ordinateur a gagné"
-        color = RED
-    elif winner and winner.startswith("joueur"):
-        player_num = winner[6:]  # Extract the number after "joueur"
-        victory_text = f"Joueur {player_num} a gagné!"
-        color = GREEN if player_num == "1" else RED
-    else:
-        victory_text = "Partie terminée"
-        color = WHITE
-    
-    # Render the text with a shadow effect
-    victory_large = fonts["large"].render(victory_text, True, color)
-    shadow = fonts["large"].render(victory_text, True, (30, 30, 30))
-    
-    # Center the text with a slight shadow offset
-    text_x = screen.get_width() // 2 - victory_large.get_width() // 2
-    text_y = screen.get_height() // 3
-    
-    # Draw the shadow slightly offset
-    screen.blit(shadow, (text_x + 4, text_y + 4))
-    screen.blit(victory_large, (text_x, text_y))
-    
-    # Restart button dimensions
-    button_width = min(300, screen.get_width() * 0.25)  # 25% of screen width, max 300px
-    button_height = min(80, screen.get_height() * 0.1)   # 10% of screen height, max 80px
-    
-    # Center button horizontally, position at 60% of screen height
+
+    # --- OPTIMISATION: Cache image in game_state ---
+    if not hasattr(draw_game_end, "cached_image") or draw_game_end.cached_image_winner != winner or draw_game_end.cached_image_size != screen.get_size():
+        assets_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'end')
+        image_path = None
+
+        if winner == "player":
+            image_path = os.path.join(assets_dir, "victory.png")
+        elif winner == "computer":
+            image_path = os.path.join(assets_dir, "defeat.png")
+        elif winner == "joueur1":
+            victory_path = os.path.join(assets_dir, "victory1.png")
+            image_path = victory_path if os.path.exists(victory_path) else os.path.join(assets_dir, "victory.png")
+        elif winner == "joueur2":
+            victory_path = os.path.join(assets_dir, "victory2.png")
+            image_path = victory_path if os.path.exists(victory_path) else os.path.join(assets_dir, "victory.png")
+
+        if image_path and os.path.exists(image_path):
+            img = pygame.image.load(image_path).convert_alpha()
+            img = pygame.transform.scale(img, screen.get_size())
+            draw_game_end.cached_image = img
+        else:
+            draw_game_end.cached_image = None
+        draw_game_end.cached_image_winner = winner
+        draw_game_end.cached_image_size = screen.get_size()
+
+    # Affiche l'image si elle existe
+    if draw_game_end.cached_image:
+        screen.blit(draw_game_end.cached_image, (0, 0))
+
+    # (Optional) Draw restart button as before
+    button_width = min(300, screen.get_width() * 0.25)
+    button_height = min(80, screen.get_height() * 0.1)
     button_x = (screen.get_width() - button_width) / 2
     button_y = screen.get_height() * 0.6
-    
-    # Add restart button
+
     draw_button(
         screen,
         "Nouvelle partie",
