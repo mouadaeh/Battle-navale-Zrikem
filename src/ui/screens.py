@@ -173,7 +173,7 @@ def draw_game_end(screen, winner, fonts, restart_function):
     button_width = min(300, screen.get_width() * 0.25)
     button_height = min(80, screen.get_height() * 0.1)
     button_x = (screen.get_width() - button_width) / 2
-    button_y = screen.get_height() * 0.6
+    button_y = screen.get_height() * 0.75
 
     draw_button(
         screen,

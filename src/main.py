@@ -599,6 +599,10 @@ while running:
                 effects_manager.clear_water_animations()
             change_music(game_state.menu_music)
 
+            game_state.state = GameState.MENU
+            game_state.placed_ships = []  # Vider la liste des bateaux placés
+            game_state.restart_game()
+
             if hasattr(game_state, 'multiplayer'):
                 if hasattr(game_state.multiplayer, 'player1_ships'):
                     game_state.multiplayer.player1_ships = []
