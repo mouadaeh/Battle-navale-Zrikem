@@ -164,38 +164,15 @@ def handle_multiplayer_game():
     
     # Draw both player boards side by side (always in the same position)
     player1_x, player1_y = draw_grid(screen, game_state.multiplayer.player1_board, fonts, assets, 
-                                    reveal=True, is_player_grid=True, position="left")
+                                    reveal=False, is_player_grid=False, position="left")
     player2_x, player2_y = draw_grid(screen, game_state.multiplayer.player2_board, fonts, assets, 
-                                    reveal=True, is_player_grid=False, position="right")
+                                    reveal=False, is_player_grid=False, position="right")
     
     # Draw ships on player 1's board
     cell_size_p1 = game_state.multiplayer.player1_board.width / len(game_state.multiplayer.player1_board.grid[0])
-    for ship in game_state.multiplayer.player1_ships:
-        ship_image = ship_images.get(ship['name'].lower())
-        if ship_image:
-            scaled_image = pygame.transform.scale(ship_image, (int(cell_size_p1 * ship['size']), int(cell_size_p1)))
-            if ship['horizontal']:
-                screen.blit(scaled_image, (player1_x + ship['col'] * cell_size_p1, player1_y + ship['row'] * cell_size_p1))
-            else:
-                rotated_image = pygame.transform.rotate(scaled_image, 90)
-                screen.blit(rotated_image, (player1_x + ship['col'] * cell_size_p1, player1_y + ship['row'] * cell_size_p1))
     
     # Draw ships on player 2's board
     cell_size_p2 = game_state.multiplayer.player2_board.width / len(game_state.multiplayer.player2_board.grid[0])
-    for ship in game_state.multiplayer.player2_ships:
-        ship_image = ship_images.get(ship['name'].lower())
-        if ship_image:
-            scaled_image = pygame.transform.scale(ship_image, (int(cell_size_p2 * ship['size']), int(cell_size_p2)))
-            if ship['horizontal']:
-                screen.blit(scaled_image, (player2_x + ship['col'] * cell_size_p2, player2_y + ship['row'] * cell_size_p2))
-            else:
-                rotated_image = pygame.transform.rotate(scaled_image, 90)
-                screen.blit(rotated_image, (player2_x + ship['col'] * cell_size_p2, player2_y + ship['row'] * cell_size_p2))
-    
-    # # Clear existing animations to prevent buildup
-    # effects_manager.fire_animations.clear()
-    # if hasattr(effects_manager, 'water_animations'):
-    #     effects_manager.water_animations.clear()
     
     # Render hits and misses on both boards
     for row in range(len(game_state.multiplayer.player1_board.grid)):
